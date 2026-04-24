@@ -1,4 +1,6 @@
+import google.generativeai as genai
 import pickle
+import os
 import numpy as np
 
 # Model load karo
@@ -8,7 +10,11 @@ with open('D:/Disaster/model.pkl', 'rb') as f:
 with open('D:/Disaster/label_encoder.pkl', 'rb') as f:
     le = pickle.load(f)
 
+
 def predict_severity(disaster_type, deaths, affected, damages, year):
+    # Gemini API key (future use ke liye)
+    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "YOUR_KEY_HERE")
+    
     disaster_encoded = le.transform([disaster_type])[0]
     X = [[year, deaths, affected, damages, disaster_encoded]]
     pred = model.predict(X)[0]
