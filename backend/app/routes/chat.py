@@ -1,43 +1,48 @@
-import google.generativeai as genai
-import pickle
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 import os
-import numpy as np
 
-# Model load karo
-with open('D:/Disaster/model.pkl', 'rb') as f:
-    model = pickle.load(f)
+router = APIRouter()
 
-with open('D:/Disaster/label_encoder.pkl', 'rb') as f:
-    le = pickle.load(f)
+class ChatMessage(BaseModel):
+    role   : str
+    content: str
 
+class ChatRequest(BaseModel):
+    message : str
+    history : list[ChatMessage] = []
 
-def predict_severity(disaster_type, deaths, affected, damages, year):
-    # Gemini API key (future use ke liye)
-    GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "YOUR_KEY_HERE")
-    
-    disaster_encoded = le.transform([disaster_type])[0]
-    X = [[year, deaths, affected, damages, disaster_encoded]]
-    pred = model.predict(X)[0]
-    labels = {0: "Low 🟢", 1: "Medium 🟡", 2: "High 🔴"}
-    return labels[pred]
+class ChatResponse(BaseModel):
+    reply     : str
+    model_used: str
 
-def chat(user_message, severity=""):
-    """Simple rule-based chatbot - Hindi + English"""
-    msg = user_message.lower()
-    
-    if "flood" in msg or "बाढ़" in msg:
-        return f"Flood ek dangerous disaster hai! Severity: {severity}\nSuraksha tips: Uche sthan par jayen, paani se door rahen!"
-    elif "earthquake" in msg or "भूकंप" in msg:
-        return f"Earthquake alert! Severity: {severity}\nSuraksha tips: Table ke neeche jayen, bahar niklen!"
-    elif "drought" in msg or "सूखा" in msg:
-        return f"Drought situation! Severity: {severity}\nSuraksha tips: Paani bachayein, crops ko protect karein!"
-    else:
-        return f"Disaster Analysis Complete!\nSeverity Level: {severity}\nSafe rahein aur authorities ki instructions follow karein!"
+@router.post("/chat", response_model=ChatResponse)
+async def chat(req: ChatRequest):
+    if not req.message.strip():
+        raise HTTPException(status_code=400, detail="Message empty hai!")
 
-# Test karo
-if __name__ == "__main__":
-    severity = predict_severity("Flood", 1000, 50000, 5000000, 2020)
-    print(f"Predicted Severity: {severity}")
-    
-    response = chat("flood disaster ke baare mein batao", severity)
-    print(f"\nChatbot: {response}")
+    try:
+        import anthropic
+        client = anthropic.Anthropic(
+            api_key=os.getenv("ANTHROPIC_API_KEY", "")
+        )
+        messages = []
+        for msg in req.history[-10:]:
+            messages.append({"role": msg.role, "content": msg.content})
+        messages.append({"role": "user", "content": req.message})
+
+        response = client.messages.create(
+            model      = "claude-sonnet-4-20250514",
+            max_tokens = 500,
+            system     = "Tum DisasterAI ho — UP Disaster Management assistant. Hindi aur English dono mein jawab do.",
+            messages   = messages,
+        )
+        return ChatResponse(
+            reply      = response.content[0].text,
+            model_used = "claude-sonnet-4"
+        )
+    except Exception:
+        return ChatResponse(
+            reply      = f"Demo mode: Tumhara sawaal tha '{req.message}'. Moradabad mein HIGH flood risk hai — 94,000 log affected hain.",
+            model_used = "demo-mode"
+        )
