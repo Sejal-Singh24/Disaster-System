@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000";
+// Yahan /api add kiya gaya hai
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000/api";
 
 const SUGGESTED = [
   "Which state has most flood deaths in EMDAT?",
@@ -36,16 +37,19 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
+      // Endpoint ko backend ke mutabik /chatbot hi rakha hai kyunki BACKEND_URL mein /api pehle se hai
       const response = await axios.post(`${BACKEND_URL}/chatbot`, {
-        message: userText, language: "auto",
+        message: userText
       }, { timeout: 15000 });
 
       setMessages(prev => [...prev, {
         role: "assistant",
-        text: response.data.reply || "Jawab nahi mila.",
+        // Backend 'response' key bhej raha hai, isliye yahan .response kiya hai
+        text: response.data.response || "Jawab nahi mila.", 
         time,
       }]);
-    } catch {
+    } catch (error) {
+      console.error("Connection Error:", error);
       setMessages(prev => [...prev, {
         role: "assistant",
         text: getDemoReply(userText),
@@ -109,7 +113,6 @@ export default function Chatbot() {
             </div>
           ))}
 
-          {/* Typing dots */}
           {loading && (
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg,#00d4ff,#0080ff)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13 }}>🤖</div>
@@ -178,7 +181,7 @@ export default function Chatbot() {
           <div>Method: <span style={{ color: "#00e676" }}>POST</span></div>
           <div>Dataset: <span style={{ color: "#ffb347" }}>EMDAT 1900–2021</span></div>
           <div style={{ marginTop: 10, padding: 8, background: "#0a0e1a", borderRadius: 6, fontSize: 10 }}>
-            .env mein VITE_BACKEND_URL set karo Anjali ke server se connect karne ke liye
+            Connect status: {loading ? "Connecting..." : "Idle"}
           </div>
         </div>
       </div>
@@ -193,18 +196,10 @@ export default function Chatbot() {
   );
 }
 
-// Demo replies when backend not connected
+// Demo replies helper
 function getDemoReply(text) {
   const t = text.toLowerCase();
   if (t.includes("uttarakhand") || t.includes("2013"))
-    return "⚠️ Uttarakhand 2013 Flash Floods:\nYe EMDAT dataset mein India ka sabse deadly flood event hai.\n6,054 deaths recorded.\nKedarnath, Chamoli, Rudraprayag worst affected.\nHimachal Pradesh, UP, Bihar bhi hit hue.";
-  if (t.includes("kerala") || t.includes("2018"))
-    return "🌊 Kerala Floods 2018:\n504 deaths, 23.2M people affected.\nThrissur, Chengannur worst hit.\nKerala ka 100 saal ka sabse bada flood.\nEMDAT mein Flash Flood type classified hai.";
-  if (t.includes("assam") || t.includes("guwahati"))
-    return "📊 Assam EMDAT Data:\nIndia ka number 1 most flood-prone state.\n69 flood events recorded (1900–2021).\n26,893 total deaths.\nBrahmaputra river main cause hai.";
-  if (t.includes("bihar") || t.includes("patna"))
-    return "📊 Bihar EMDAT Data:\n45 flood events (1900–2021).\n29,364 total deaths recorded.\nKosi river breach (2008) — 1,063 deaths.\n2007 mein 1,103 deaths, 18.7M affected.";
-  if (t.includes("worst") || t.includes("sabse bura") || t.includes("most deaths"))
-    return "💀 EMDAT Worst Years (India Floods):\n1. 2013 — 6,453 deaths (Uttarakhand)\n2. 2005 — 2,129 deaths (Gujarat + India)\n3. 2000 — 2,086 deaths (Bihar + WB)\n4. 2007 — 2,051 deaths (Bihar, multi-state)\n5. 2020 — 2,104 deaths (multi-state)";
-  return "Main FloodGuard AI hoon. EMDAT dataset (India floods 1900–2021) ke baare mein kuch bhi poochho. Backend connect karo live Claude AI responses ke liye.";
+    return "⚠️ Uttarakhand 2013 Flash Floods:\n6,054 deaths recorded in EMDAT.";
+  return "Backend se connection nahi ho paya. Please check if your FastAPI server is running.";
 }
