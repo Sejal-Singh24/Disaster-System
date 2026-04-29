@@ -26,10 +26,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# ── Routes import karo ────────────────────────────────────
-from routes.predict  import router as predict_router
-from routes.alerts   import router as alerts_router
-from routes.chat     import router as chat_router
+# ── Routes import ────────────────────────────────────
+from app.routes.predict import router as predict_router
+from app.routes.alerts  import router as alerts_router  
+from app.routes.chat    import router as chat_router    
 
 app.include_router(predict_router,  prefix="/api", tags=["Prediction"])
 app.include_router(alerts_router,   prefix="/api", tags=["Alerts"])
