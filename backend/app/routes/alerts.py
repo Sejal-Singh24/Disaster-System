@@ -7,7 +7,10 @@ import os
 router = APIRouter()
 
 # ─── API Key & Settings ────────────────────────────────────────────────────────
-WEATHER_API_KEY = "3e082ac810d6c412e9ecf7faf476a20e"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 WEATHER_URL     = "https://api.openweathermap.org/data/2.5/weather"
 
 # ─── UP ke Districts with coordinates ─────────────────────────────────────────
