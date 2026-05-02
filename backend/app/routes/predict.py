@@ -3,37 +3,67 @@ from pydantic import BaseModel, Field
 from typing import Optional
 import pickle
 import numpy as np
+import pandas as pd
 import os
+import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 
-# ── ML Model load karo ────────────────────────────────────
-MODEL_PATH = os.path.join(os.path.dirname(__file__), "../models/model.pkl")
+WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 
+# ── Paths ─────────────────────────────────────────────────
+BASE_DIR   = os.path.dirname(__file__)
+MODEL_PATH = os.path.join(BASE_DIR, "../models/model.pkl")
+DATA_PATH  = os.path.join(BASE_DIR, "../../data/disasters_clean.csv")
+
+# ── Load ML Model ─────────────────────────────────────────
 def load_model():
     try:
         with open(MODEL_PATH, "rb") as f:
             return pickle.load(f)
     except FileNotFoundError:
-        print("⚠️  model.pkl nahi mila — rule-based fallback use hoga!")
+        print("⚠️ model.pkl nahi mila — rule-based fallback use hoga!")
         return None
 
 model = load_model()
 
-DISASTER_TYPES = {
+# ── Load EMDAT Historical Data ────────────────────────────
+def load_emdat():
+    try:
+        df = pd.read_csv(DATA_PATH)
+        india_df = df[df["Country"] == "India"].copy()
+        print(f"✅ EMDAT data loaded: {len(india_df)} India records")
+        return india_df
+    except Exception as e:
+        print(f"⚠️ EMDAT data load nahi hua: {e}")
+        return None
+
+emdat_df = load_emdat()
+
+# ── Disaster Type Mapping ─────────────────────────────────
+DISASTER_TYPE_MAP = {
     "flood"      : 0,
     "earthquake" : 1,
     "cyclone"    : 2,
+    "storm"      : 2,
     "drought"    : 3,
     "landslide"  : 4,
     "wildfire"   : 5,
+    "tsunami"    : 6,
 }
 
-SEVERITY_LABELS = {
-    0: "Low",
-    1: "Medium",
-    2: "High",
-    3: "Critical"
+EMDAT_TYPE_MAP = {
+    "flood"      : "Flood",
+    "earthquake" : "Earthquake",
+    "cyclone"    : "Storm",
+    "storm"      : "Storm",
+    "drought"    : "Drought",
+    "landslide"  : "Landslide",
+    "wildfire"   : "Wildfire",
+    "tsunami"    : "Flood",
 }
 
 SEVERITY_COLORS = {
@@ -43,7 +73,7 @@ SEVERITY_COLORS = {
     "Critical" : "#E24B4A"
 }
 
-# ── Request schema ────────────────────────────────────────
+# ── Request / Response Schema ─────────────────────────────
 class PredictRequest(BaseModel):
     disaster_type   : str             = Field(..., example="flood")
     district        : str             = Field(..., example="Moradabad")
@@ -56,20 +86,177 @@ class PredictRequest(BaseModel):
     river_level_m   : Optional[float] = Field(None, example=8.5)
     magnitude       : Optional[float] = Field(None, example=5.2)
 
-# ── Response schema ───────────────────────────────────────
 class PredictResponse(BaseModel):
-    district        : str
-    state           : str
-    disaster_type   : str
-    severity_score  : float
-    severity_label  : str
-    severity_color  : str
-    people_at_risk  : int
-    confidence_pct  : float
-    recommendations : list[str]
-    alert_level     : str
+    district           : str
+    state              : str
+    disaster_type      : str
+    severity_score     : float
+    severity_label     : str
+    severity_color     : str
+    people_at_risk     : int
+    confidence_pct     : float
+    recommendations    : list[str]
+    alert_level        : str
+    historical_context : str
+    ml_used            : bool
 
-# ── Helper functions ──────────────────────────────────────
+# ── EMDAT Historical Analysis ─────────────────────────────
+def get_historical_context(disaster_type: str) -> dict:
+    """EMDAT data se historical stats nikalo"""
+    if emdat_df is None:
+        return {"avg_deaths": 0, "avg_affected": 0, "avg_damages": 0, "total_events": 0}
+
+    emdat_type = EMDAT_TYPE_MAP.get(disaster_type.lower(), "Flood")
+    filtered   = emdat_df[emdat_df["Disaster Type"] == emdat_type]
+
+    if filtered.empty:
+        return {"avg_deaths": 0, "avg_affected": 0, "avg_damages": 0, "total_events": 0}
+
+    return {
+        "avg_deaths"   : round(filtered["Total Deaths"].mean(), 1),
+        "avg_affected" : round(filtered["Total Affected"].mean(), 1),
+        "avg_damages"  : round(filtered["Total Damages ('000 US$)"].mean(), 1),
+        "total_events" : len(filtered),
+        "worst_year"   : int(filtered.loc[filtered["Total Deaths"].idxmax(), "Year"]) if not filtered["Total Deaths"].isna().all() else 0,
+        "worst_deaths" : int(filtered["Total Deaths"].max()) if not filtered["Total Deaths"].isna().all() else 0,
+    }
+
+def build_historical_message(disaster_type: str, severity_label: str) -> str:
+    """Historical context message banao"""
+    ctx = get_historical_context(disaster_type)
+    if ctx["total_events"] == 0:
+        return "Historical data available nahi hai."
+
+    emdat_type = EMDAT_TYPE_MAP.get(disaster_type.lower(), "Flood")
+    msg = (
+        f"📊 India EMDAT Historical Data ({emdat_type}):\n"
+        f"   • Total events (1900-2021): {ctx['total_events']}\n"
+        f"   • Avg deaths per event: {ctx['avg_deaths']:,.0f}\n"
+        f"   • Avg people affected: {ctx['avg_affected']:,.0f}\n"
+    )
+    if ctx.get("worst_year") and ctx.get("worst_deaths"):
+        msg += f"   • Worst year: {ctx['worst_year']} ({ctx['worst_deaths']:,} deaths)\n"
+
+    return msg
+
+# ── ML Model Prediction ───────────────────────────────────
+def ml_predict(disaster_type: str, population: int) -> tuple[float, float, bool]:
+    """ML model se severity predict karo — EMDAT features use karke"""
+    if model is None:
+        return None, 72.0, False
+
+    try:
+        ctx = get_historical_context(disaster_type)
+        dtype_encoded = DISASTER_TYPE_MAP.get(disaster_type.lower(), 0)
+
+        # Model features: Year, Total Deaths, Total Affected, Total Damages, Disaster_Type_Encoded
+        features = np.array([[
+            2024,                        # Current year
+            ctx["avg_deaths"],           # Historical avg deaths
+            ctx["avg_affected"],         # Historical avg affected
+            ctx["avg_damages"],          # Historical avg damages
+            dtype_encoded                # Disaster type encoded
+        ]])
+
+        pred_class   = model.predict(features)[0]
+        pred_proba   = model.predict_proba(features).max() * 100
+
+        # Class to score: 0=Low(2.0), 1=Medium(5.0), 2=High(7.5)
+        score_map    = {0: 2.0, 1: 5.0, 2: 7.5}
+        ml_score     = score_map.get(int(pred_class), 3.0)
+
+        return ml_score, round(pred_proba, 1), True
+
+    except Exception as e:
+        print(f"ML predict error: {e}")
+        return None, 72.0, False
+
+# ── Rule-based Severity ───────────────────────────────────
+def rule_based_severity(req: PredictRequest) -> float:
+    score = 0.0
+    dtype = req.disaster_type.lower()
+
+    if dtype == "flood":
+        if req.rainfall_mm > 200:   score += 4.0
+        elif req.rainfall_mm > 100: score += 2.5
+        elif req.rainfall_mm > 50:  score += 1.0
+        if req.river_level_m:
+            if req.river_level_m > 10:   score += 3.0
+            elif req.river_level_m > 7:  score += 2.0
+            elif req.river_level_m > 5:  score += 1.0
+
+    elif dtype == "earthquake":
+        mag = req.magnitude or 0
+        if mag >= 7.0:   score += 7.0
+        elif mag >= 6.0: score += 5.0
+        elif mag >= 5.0: score += 3.0
+        elif mag >= 4.0: score += 1.5
+
+        # Seismic zones
+        high_risk   = ["dehradun", "haridwar", "rishikesh", "shimla", "nainital", "guwahati", "ranchi"]
+        medium_risk = ["delhi", "meerut", "agra", "lucknow", "chandigarh", "amritsar", "noida", "ghaziabad"]
+        city = req.district.lower()
+        if city in high_risk:     score += 4.0
+        elif city in medium_risk: score += 2.5
+        else:                     score += 1.0
+
+    elif dtype in ["cyclone", "storm"]:
+        if req.wind_speed_kmh > 180:  score += 6.0
+        elif req.wind_speed_kmh > 120: score += 4.0
+        elif req.wind_speed_kmh > 60:  score += 2.0
+
+    elif dtype == "drought":
+        if req.temperature_c > 45:   score += 4.0
+        elif req.temperature_c > 42: score += 3.0
+        elif req.temperature_c > 38: score += 2.0
+        elif req.temperature_c > 35: score += 1.0
+        if req.rainfall_mm == 0:     score += 2.0
+
+    elif dtype == "landslide":
+        if req.rainfall_mm > 150:  score += 4.0
+        elif req.rainfall_mm > 80: score += 2.5
+        elif req.rainfall_mm > 40: score += 1.0
+        hilly = ["dehradun", "haridwar", "rishikesh", "nainital", "shimla", "ranchi", "guwahati"]
+        if req.district.lower() in hilly: score += 3.0
+
+    elif dtype == "wildfire":
+        if req.temperature_c > 42:   score += 3.5
+        elif req.temperature_c > 38: score += 2.0
+        if req.rainfall_mm == 0:     score += 2.0
+        if req.wind_speed_kmh > 60:  score += 1.5
+
+    elif dtype == "tsunami":
+        coastal_high   = ["chennai", "visakhapatnam", "bhubaneswar", "kochi", "thiruvananthapuram"]
+        coastal_medium = ["mumbai", "kolkata", "guwahati"]
+        city = req.district.lower()
+        if city in coastal_high:     score += 6.0
+        elif city in coastal_medium: score += 4.0
+        else:                        score += 1.5
+
+    # Population density bonus
+    density = req.population / max(req.area_sq_km, 1)
+    if density > 5000:    score += 2.0
+    elif density > 2000:  score += 1.5
+    elif density > 1000:  score += 1.0
+    elif density > 500:   score += 0.5
+
+    return min(round(score, 1), 10.0)
+
+# ── Combine ML + Rule-based ───────────────────────────────
+def get_final_score(req: PredictRequest) -> tuple[float, float, bool]:
+    """ML + Rule-based combine karke final score nikalo"""
+    ml_score, confidence, ml_used = ml_predict(req.disaster_type, req.population)
+    rule_score = rule_based_severity(req)
+
+    if ml_score is not None:
+        # 60% ML + 40% Rule-based
+        final_score = round((ml_score * 0.6) + (rule_score * 0.4), 1)
+        final_score = min(final_score, 10.0)
+        return final_score, confidence, True
+    else:
+        return rule_score, 72.0, False
+
+# ── People at Risk ────────────────────────────────────────
 def estimate_people_at_risk(severity_score: float, population: int) -> int:
     if severity_score >= 8:   pct = 0.70
     elif severity_score >= 6: pct = 0.45
@@ -77,6 +264,7 @@ def estimate_people_at_risk(severity_score: float, population: int) -> int:
     else:                     pct = 0.08
     return int(population * pct)
 
+# ── Recommendations ───────────────────────────────────────
 def get_recommendations(severity_label: str, disaster_type: str) -> list[str]:
     base = {
         "Critical": [
@@ -90,7 +278,7 @@ def get_recommendations(severity_label: str, disaster_type: str) -> list[str]:
             "Evacuation advisory jaari karo",
             "Rescue teams alert karo",
             "Local administration ko inform karo",
-            "Logon ko safe zones identify karke batao",
+            "Logon ko safe zones batao",
         ],
         "Medium": [
             "Situation monitor karo",
@@ -103,93 +291,56 @@ def get_recommendations(severity_label: str, disaster_type: str) -> list[str]:
         ]
     }
     disaster_specific = {
-        "flood"      : ["River levels continuously monitor karo", "Low-lying areas khali karwao"],
+        "flood"      : ["River levels monitor karo", "Low-lying areas khali karwao"],
         "earthquake" : ["Buildings inspect karo", "Aftershocks ke liye taiyaar raho"],
         "cyclone"    : ["Coastal areas evacuate karo", "Ships ko port pe rokho"],
+        "drought"    : ["Pani ki rationing karo", "Farmers ko support do"],
+        "landslide"  : ["Pahadi roads band karo", "Slopes monitor karo"],
+        "wildfire"   : ["Forest areas evacuate karo", "Fire brigades deploy karo"],
+        "tsunami"    : ["Oonchi jagah par jao", "Coastal areas band karo"],
     }
-    recs = base.get(severity_label, base["Low"])
+    recs  = base.get(severity_label, base["Low"]).copy()
     recs += disaster_specific.get(disaster_type.lower(), [])
     return recs[:5]
 
-def rule_based_severity(req: PredictRequest) -> float:
-    score = 0.0
-    dtype = req.disaster_type.lower()
-
-    if dtype == "flood":
-        if req.rainfall_mm > 200  : score += 4.0
-        elif req.rainfall_mm > 100: score += 2.5
-        elif req.rainfall_mm > 50 : score += 1.0
-        if req.river_level_m:
-            if req.river_level_m > 10  : score += 3.0
-            elif req.river_level_m > 7 : score += 2.0
-            elif req.river_level_m > 5 : score += 1.0
-
-    elif dtype == "earthquake":
-        mag = req.magnitude or 0
-        if mag >= 7.0  : score += 7.0
-        elif mag >= 6.0: score += 5.0
-        elif mag >= 5.0: score += 3.0
-        elif mag >= 4.0: score += 1.5
-
-    elif dtype == "cyclone":
-        if req.wind_speed_kmh > 180 : score += 6.0
-        elif req.wind_speed_kmh > 120: score += 4.0
-        elif req.wind_speed_kmh > 60 : score += 2.0
-
-    density = req.population / max(req.area_sq_km, 1)
-    if density > 1000: score += 1.5
-    elif density > 500: score += 0.8
-
-    return min(round(score, 1), 10.0)
-
-# ── Main prediction endpoint ──────────────────────────────
+# ── Main Predict Endpoint ─────────────────────────────────
 @router.post("/predict", response_model=PredictResponse)
 async def predict_disaster(req: PredictRequest):
-    features = np.array([[
-        DISASTER_TYPES.get(req.disaster_type.lower(), 0),
-        req.rainfall_mm,
-        req.temperature_c,
-        req.wind_speed_kmh,
-        req.population,
-        req.area_sq_km,
-        req.river_level_m  or 0.0,
-        req.magnitude      or 0.0,
-        req.population / max(req.area_sq_km, 1),
-    ]])
+    """
+    EMDAT Historical Data + ML Model + Live Weather combine karke
+    disaster impact predict karta hai.
+    """
+    # Final score nikalo
+    severity_score, confidence, ml_used = get_final_score(req)
 
-    if model is not None:
-        try:
-            severity_score = float(model.predict(features)[0])
-            confidence     = float(model.predict_proba(features).max() * 100)
-        except Exception as e:
-            print(f"Model error: {e} — fallback use kar raha hoon")
-            severity_score = rule_based_severity(req)
-            confidence     = 72.0
-    else:
-        severity_score = rule_based_severity(req)
-        confidence     = 72.0
-
-    if severity_score >= 7  : label = "Critical"
+    # Severity label
+    if severity_score >= 7:   label = "Critical"
     elif severity_score >= 5: label = "High"
     elif severity_score >= 3: label = "Medium"
-    else                    : label = "Low"
+    else:                     label = "Low"
+
+    # Historical context
+    historical_msg = build_historical_message(req.disaster_type, label)
 
     return PredictResponse(
-        district        = req.district,
-        state           = req.state,
-        disaster_type   = req.disaster_type,
-        severity_score  = round(severity_score, 1),
-        severity_label  = label,
-        severity_color  = SEVERITY_COLORS[label],
-        people_at_risk  = estimate_people_at_risk(severity_score, req.population),
-        confidence_pct  = round(confidence, 1),
-        recommendations = get_recommendations(label, req.disaster_type),
-        alert_level     = label,
+        district           = req.district,
+        state              = req.state,
+        disaster_type      = req.disaster_type,
+        severity_score     = severity_score,
+        severity_label     = label,
+        severity_color     = SEVERITY_COLORS[label],
+        people_at_risk     = estimate_people_at_risk(severity_score, req.population),
+        confidence_pct     = confidence,
+        recommendations    = get_recommendations(label, req.disaster_type),
+        alert_level        = label,
+        historical_context = historical_msg,
+        ml_used            = ml_used,
     )
 
-# ── Test endpoint ─────────────────────────────────────────
+# ── Test Endpoint ─────────────────────────────────────────
 @router.get("/predict/test")
 async def predict_test():
+    """Quick test — Moradabad flood scenario"""
     test_req = PredictRequest(
         disaster_type  = "flood",
         district       = "Moradabad",
