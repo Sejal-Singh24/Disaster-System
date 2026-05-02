@@ -199,7 +199,13 @@ export default function Chatbot() {
 // Demo replies helper
 function getDemoReply(text) {
   const t = text.toLowerCase();
+  if (t.includes("weather") || t.includes("mausam"))
+    return "Weather service temporarily unavailable. Please try again.";
+  if (t.includes("earthquake") || t.includes("bhukamp"))
+    return "Earthquake risk data temporarily unavailable.";
+  if (t.includes("flood"))
+    return "Flood risk data temporarily unavailable.";
   if (t.includes("uttarakhand") || t.includes("2013"))
-    return "⚠️ Uttarakhand 2013 Flash Floods:\n6,054 deaths recorded in EMDAT.";
-  return "Backend se connection nahi ho paya. Please check if your FastAPI server is running.";
+    return "Uttarakhand 2013 Flash Floods: 6,054 deaths recorded in EMDAT.";
+  return "Backend se connection nahi ho paya. Server check karo: localhost:8000";
 }
