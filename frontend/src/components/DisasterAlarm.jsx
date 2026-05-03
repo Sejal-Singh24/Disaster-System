@@ -113,7 +113,7 @@ export default function DisasterAlarm() {
     }
 
     data.forEach(alert => {
-     if (alert.alert_level === "Critical" || alert.alert_level === "High" || alert.source === "GDACS") {
+     if (alert.alert_level === "Critical" || alert.alert_level === "High") {
       if (!seenIds.current.has(alert.id)) {
         seenIds.current.add(alert.id);
       }
@@ -233,7 +233,7 @@ export default function DisasterAlarm() {
                       <span style={{ fontSize:10, color:"#7a9bbf", background:"rgba(0,212,255,0.08)", border:"1px solid rgba(0,212,255,0.2)", borderRadius:4, padding:"2px 8px", fontFamily:"monospace" }}>
                         ⏰ {alert.predicted_for}
                       </span>
-                      {(alert.disaster_type !== "None" || alert.source === "GDACS") && (
+                      {alert.disaster_type !== "None" && (
                         <span style={{ fontSize:10, color:"#00d4ff", fontFamily:"monospace" }}>🌊 {alert.disaster_type}</span>
                       )}
                     </div>
