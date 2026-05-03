@@ -1,21 +1,25 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
-// Yahan /api add kiya gaya hai
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000/api";
 
 const SUGGESTED = [
-  "Which state has most flood deaths in EMDAT?",
-  "2013 mein Uttarakhand mein kya hua tha?",
-  "Bihar mein kitne flood events recorded hain?",
-  "Kerala 2018 flood ke baare mein batao",
-  "India ka sabse bura flood year kaunsa tha?",
+  "Delhi earthquake risk",
+  "Mumbai cyclone risk",
+  "Jaipur drought risk",
+  "Chennai tsunami risk",
+  "Dehradun landslide risk",
+  "Nainital wildfire risk",
+  "Moradabad flood risk",
+  "Delhi weather",
+  "2013 Uttarakhand flood",
+  "India ka sabse bura flood",
 ];
 
-export default function Chatbot() {
+export default function Chatbot({ disasterType = "flood" }) {
   const [messages, setMessages] = useState([{
     role: "assistant",
-    text: "Namaste! 🙏 Main FloodGuard AI hoon.\n\nMujhe EM-DAT dataset ke baare mein poochho — India ke flood events, deaths, affected states — Hindi ya English mein!",
+    text: "Namaste! 🙏 Main DisasterGuard AI hoon.\n\nMujhse poochh sakte ho:\n🌊 Flood · 🏔️ Earthquake · 🌀 Cyclone\n🌵 Drought · ⛰️ Landslide · 🔥 Wildfire · 🌊 Tsunami\n\nHindi ya English mein!",
     time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
   }]);
   const [input,   setInput]   = useState("");
@@ -37,22 +41,20 @@ export default function Chatbot() {
     setLoading(true);
 
     try {
-      // Endpoint ko backend ke mutabik /chatbot hi rakha hai kyunki BACKEND_URL mein /api pehle se hai
       const response = await axios.post(`${BACKEND_URL}/chatbot`, {
         message: userText
       }, { timeout: 15000 });
 
       setMessages(prev => [...prev, {
         role: "assistant",
-        // Backend 'response' key bhej raha hai, isliye yahan .response kiya hai
-        text: response.data.response || "Jawab nahi mila.", 
+        text: response.data.response || "Jawab nahi mila.",
         time,
       }]);
     } catch (error) {
       console.error("Connection Error:", error);
       setMessages(prev => [...prev, {
         role: "assistant",
-        text: getDemoReply(userText),
+        text: "❌ Backend se connection nahi ho paya. Server check karo: http://localhost:8000",
         time,
         isDemo: true,
       }]);
@@ -67,7 +69,7 @@ export default function Chatbot() {
   };
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, height: "calc(100vh - 140px)" }}>
+    <div style={{ display: "grid", gridTemplateColumns: "1fr 280px", gap: 20, height: "calc(100vh - 180px)" }}>
 
       {/* CHAT WINDOW */}
       <div className="card" style={{ display: "flex", flexDirection: "column", padding: 0, overflow: "hidden" }}>
@@ -78,10 +80,10 @@ export default function Chatbot() {
             🤖
           </div>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14 }}>FloodGuard AI</div>
+            <div style={{ fontWeight: 700, fontSize: 14 }}>DisasterGuard AI</div>
             <div style={{ fontSize: 11, color: "#7a9bbf", fontFamily: "monospace", display: "flex", alignItems: "center", gap: 4 }}>
               <span style={{ width: 6, height: 6, background: "#00e676", borderRadius: "50%", display: "inline-block" }} />
-              Claude AI · EMDAT Dataset · Hindi + English
+              ML Model · EMDAT Dataset · Hindi + English
             </div>
           </div>
         </div>
@@ -96,18 +98,18 @@ export default function Chatbot() {
                 </div>
               )}
               <div style={{
-                maxWidth: "72%",
-                background: msg.role === "user" ? "linear-gradient(135deg,#00d4ff22,#0080ff22)" : "#1a2235",
-                border: `1px solid ${msg.role === "user" ? "#00d4ff44" : "#1e2d45"}`,
-                borderRadius: msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
-                padding: "12px 16px",
+                maxWidth     : "72%",
+                background   : msg.role === "user" ? "linear-gradient(135deg,#00d4ff22,#0080ff22)" : "#1a2235",
+                border       : `1px solid ${msg.role === "user" ? "#00d4ff44" : "#1e2d45"}`,
+                borderRadius : msg.role === "user" ? "16px 16px 4px 16px" : "16px 16px 16px 4px",
+                padding      : "12px 16px",
               }}>
                 <p style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: "pre-wrap", color: "#e8f4fd" }}>
                   {msg.text}
                 </p>
                 <div style={{ fontSize: 10, color: "#7a9bbf", fontFamily: "monospace", marginTop: 6, display: "flex", justifyContent: "space-between" }}>
                   <span>{msg.time}</span>
-                  {msg.isDemo && <span style={{ color: "#ffb347" }}>⚡ demo mode</span>}
+                  {msg.isDemo && <span style={{ color: "#ffb347" }}>⚡ offline</span>}
                 </div>
               </div>
             </div>
@@ -134,7 +136,7 @@ export default function Chatbot() {
             ref={inputRef} value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={handleKey}
-            placeholder="EMDAT data ke baare mein poochho... (Hindi / English)"
+            placeholder="Disaster risk, weather, history ke baare mein poochho... (Hindi / English)"
             rows={2}
             style={{ flex: 1, background: "#0a0e1a", border: "1px solid #1e2d45", borderRadius: 10, padding: "10px 14px", color: "#e8f4fd", fontFamily: "inherit", fontSize: 13, resize: "none", outline: "none", lineHeight: 1.5 }}
           />
@@ -142,11 +144,11 @@ export default function Chatbot() {
             onClick={() => sendMessage()}
             disabled={loading || !input.trim()}
             style={{
-              background: loading || !input.trim() ? "#1a2235" : "linear-gradient(135deg,#00d4ff,#0080ff)",
-              border: "none", borderRadius: 10, padding: "0 20px",
-              color: loading || !input.trim() ? "#7a9bbf" : "#0a0e1a",
-              fontWeight: 700, fontSize: 14, cursor: loading || !input.trim() ? "not-allowed" : "pointer",
-              fontFamily: "inherit", transition: "all 0.2s",
+              background   : loading || !input.trim() ? "#1a2235" : "linear-gradient(135deg,#00d4ff,#0080ff)",
+              border       : "none", borderRadius: 10, padding: "0 20px",
+              color        : loading || !input.trim() ? "#7a9bbf" : "#0a0e1a",
+              fontWeight   : 700, fontSize: 14, cursor: loading || !input.trim() ? "not-allowed" : "pointer",
+              fontFamily   : "inherit", transition: "all 0.2s",
             }}
           >
             {loading ? "..." : "Send →"}
@@ -178,10 +180,10 @@ export default function Chatbot() {
         <div className="card" style={{ fontSize: 12, color: "#7a9bbf", fontFamily: "monospace", lineHeight: 1.8 }}>
           <p className="card-title">Backend Info</p>
           <div>URL: <span style={{ color: "#00d4ff" }}>{BACKEND_URL}/chatbot</span></div>
-          <div>Method: <span style={{ color: "#00e676" }}>POST</span></div>
+          <div>Model: <span style={{ color: "#00e676" }}>XGBoost + EMDAT</span></div>
           <div>Dataset: <span style={{ color: "#ffb347" }}>EMDAT 1900–2021</span></div>
           <div style={{ marginTop: 10, padding: 8, background: "#0a0e1a", borderRadius: 6, fontSize: 10 }}>
-            Connect status: {loading ? "Connecting..." : "Idle"}
+            Status: {loading ? "Processing..." : "Ready ✅"}
           </div>
         </div>
       </div>
@@ -194,18 +196,4 @@ export default function Chatbot() {
       `}</style>
     </div>
   );
-}
-
-// Demo replies helper
-function getDemoReply(text) {
-  const t = text.toLowerCase();
-  if (t.includes("weather") || t.includes("mausam"))
-    return "Weather service temporarily unavailable. Please try again.";
-  if (t.includes("earthquake") || t.includes("bhukamp"))
-    return "Earthquake risk data temporarily unavailable.";
-  if (t.includes("flood"))
-    return "Flood risk data temporarily unavailable.";
-  if (t.includes("uttarakhand") || t.includes("2013"))
-    return "Uttarakhand 2013 Flash Floods: 6,054 deaths recorded in EMDAT.";
-  return "Backend se connection nahi ho paya. Server check karo: localhost:8000";
 }

@@ -118,7 +118,6 @@ CITY_DATA = {
 }
 
 
-# ── Helper: Extract City ──────────────────────────────────
 def extract_city(text):
     text_lower = text.lower()
     for city in KNOWN_CITIES:
@@ -144,7 +143,6 @@ def extract_city(text):
     return "Delhi"
 
 
-# ── Helper: Live Weather ──────────────────────────────────
 def get_live_weather(city):
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
     try:
@@ -161,7 +159,6 @@ def get_live_weather(city):
         return {"rainfall": 0, "temp": 35, "wind": 20, "humidity": 60, "desc": "N/A", "feels": 35}
 
 
-# ── Helper: EMDAT Historical Stats ───────────────────────
 def get_emdat_stats(disaster_type: str) -> dict:
     if emdat_df is None:
         return {}
@@ -177,14 +174,13 @@ def get_emdat_stats(disaster_type: str) -> dict:
         "avg_affected" : round(filtered[aff_col].mean(), 0)    if not filtered[aff_col].isna().all()    else 0,
     }
     if not filtered[deaths_col].isna().all():
-        worst_idx        = filtered[deaths_col].idxmax()
+        worst_idx             = filtered[deaths_col].idxmax()
         stats["worst_year"]   = int(filtered.loc[worst_idx, "Year"])
         stats["worst_deaths"] = int(filtered.loc[worst_idx, deaths_col])
     return stats
 
 
-# ── Helper: ML Prediction ─────────────────────────────────
-def ml_predict(disaster_type: str) -> float | None:
+def ml_predict(disaster_type: str):
     if model is None:
         return None
     try:
@@ -205,8 +201,7 @@ def ml_predict(disaster_type: str) -> float | None:
         return None
 
 
-# ── Helper: Rule-based Score ──────────────────────────────
-def rule_score(disaster_type, city, w, city_info, magnitude=None, river_level=None):
+def rule_score(disaster_type, city, w, city_info):
     score = 0.0
     dtype = disaster_type.lower()
 
@@ -216,10 +211,6 @@ def rule_score(disaster_type, city, w, city_info, magnitude=None, river_level=No
         elif w["rainfall"] > 50:  score += 1.0
         if w["humidity"] > 90:    score += 1.0
         elif w["humidity"] > 75:  score += 0.5
-        if river_level:
-            if river_level > 10:   score += 3.0
-            elif river_level > 7:  score += 2.0
-            elif river_level > 5:  score += 1.0
 
     elif dtype == "earthquake":
         high_risk   = ["dehradun", "haridwar", "rishikesh", "shimla", "nainital", "guwahati", "ranchi"]
@@ -227,10 +218,6 @@ def rule_score(disaster_type, city, w, city_info, magnitude=None, river_level=No
         if city.lower() in high_risk:     score += 5.0
         elif city.lower() in medium_risk: score += 3.0
         else:                             score += 1.5
-        if magnitude:
-            if magnitude >= 7.0:   score += 3.0
-            elif magnitude >= 6.0: score += 2.0
-            elif magnitude >= 5.0: score += 1.0
 
     elif dtype in ["cyclone", "storm"]:
         if w["wind"] > 180:   score += 6.0
@@ -272,7 +259,6 @@ def rule_score(disaster_type, city, w, city_info, magnitude=None, river_level=No
         elif city.lower() in coastal_medium: score += 4.0
         else:                                score += 1.5
 
-    # Population density bonus
     density = city_info["population"] / max(city_info["area"], 1)
     if density > 5000:    score += 2.0
     elif density > 2000:  score += 1.5
@@ -282,17 +268,14 @@ def rule_score(disaster_type, city, w, city_info, magnitude=None, river_level=No
     return min(round(score, 1), 10.0)
 
 
-# ── Helper: Final Combined Score ──────────────────────────
 def get_final_score(disaster_type, city, w, city_info):
     ml  = ml_predict(disaster_type)
     rb  = rule_score(disaster_type, city, w, city_info)
     if ml is not None:
-        # 60% ML (historical) + 40% rule-based (current weather)
         return round((ml * 0.6) + (rb * 0.4), 1), True
     return rb, False
 
 
-# ── Helper: Label + Emoji ─────────────────────────────────
 def get_label_emoji(score):
     if score >= 7:   return "Critical", "🔴"
     elif score >= 5: return "High",     "🟠"
@@ -300,13 +283,11 @@ def get_label_emoji(score):
     else:            return "Low",      "🟢"
 
 
-# ── Helper: People at Risk ────────────────────────────────
 def get_people(score, population):
     pct = 0.70 if score >= 7 else 0.45 if score >= 5 else 0.20 if score >= 3 else 0.08
     return int(population * pct)
 
 
-# ── Helper: Recommendations ──────────────────────────────
 def get_recs(label, dtype):
     base = {
         "Critical": ["Turant evacuation order jaari karo", "NDRF teams deploy karo", "Emergency helpline (1078) activate karo", "Relief camps setup karo"],
@@ -328,7 +309,6 @@ def get_recs(label, dtype):
     return recs[:5]
 
 
-# ── Helper: Format Response ───────────────────────────────
 def format_prediction(disaster_name, city, label, score, people, w, recs, ml_used, emdat_stats):
     _, emoji = get_label_emoji(score)
     ml_tag   = "🤖 ML+Historical" if ml_used else "📐 Rule-based"
@@ -345,7 +325,6 @@ def format_prediction(disaster_name, city, label, score, people, w, recs, ml_use
         f"🔬 Model : {ml_tag}\n\n"
     )
 
-    # EMDAT Historical Context
     if emdat_stats:
         resp += f"📊 India Historical Data:\n"
         resp += f"   • Total events (1900-2021): {emdat_stats.get('total_events', 'N/A')}\n"
@@ -362,7 +341,6 @@ def format_prediction(disaster_name, city, label, score, people, w, recs, ml_use
     return resp
 
 
-# ── Weather Update ────────────────────────────────────────
 def get_weather_update(city):
     url = f"http://api.openweathermap.org/data/2.5/weather?q={city}&appid={WEATHER_API_KEY}&units=metric"
     try:
@@ -380,7 +358,6 @@ def get_weather_update(city):
         return "❌ Network error! Weather fetch nahi ho paya."
 
 
-# ── Prediction Function ───────────────────────────────────
 async def predict(disaster_type, city):
     city_info  = CITY_DATA.get(city.lower(), {"population": 500000, "area": 2000})
     w          = get_live_weather(city)
@@ -391,56 +368,49 @@ async def predict(disaster_type, city):
     stats      = get_emdat_stats(disaster_type)
 
     disaster_names = {
-        "flood": "🌊 Flood", "earthquake": "🏔️ Earthquake",
-        "cyclone": "🌀 Cyclone", "drought": "🌵 Drought",
-        "landslide": "⛰️ Landslide", "wildfire": "🔥 Wildfire", "tsunami": "🌊 Tsunami"
+        "flood"      : "🌊 Flood",
+        "earthquake" : "🏔️ Earthquake",
+        "cyclone"    : "🌀 Cyclone",
+        "drought"    : "🌵 Drought",
+        "landslide"  : "⛰️ Landslide",
+        "wildfire"   : "🔥 Wildfire",
+        "tsunami"    : "🌊 Tsunami"
     }
     name = disaster_names.get(disaster_type.lower(), "⚠️ Disaster")
     return format_prediction(name, city, label, score, people, w, recs, ml, stats)
 
 
-# ── Main Chat Endpoint ────────────────────────────────────
 @router.post("/chatbot")
 async def chat_endpoint(chat_data: ChatInput):
     t = chat_data.message.lower()
 
-    # 1. WEATHER
     if any(w in t for w in ["weather", "mausam", "temperature", "temp"]):
         return {"response": get_weather_update(extract_city(t))}
 
-    # 2. FLOOD
     if any(w in t for w in ["flood", "flooding", "baarish", "barsat", "flood risk"]):
         return {"response": await predict("flood", extract_city(t))}
 
-    # 3. EARTHQUAKE
     if any(w in t for w in ["earthquake", "bhukamp", "bhookamp", "seismic", "quake"]):
         return {"response": await predict("earthquake", extract_city(t))}
 
-    # 4. CYCLONE
     if any(w in t for w in ["cyclone", "toofan", "hurricane", "storm", "typhoon"]):
         return {"response": await predict("cyclone", extract_city(t))}
 
-    # 5. DROUGHT
     if any(w in t for w in ["drought", "sukha", "pani nahi", "water crisis"]):
         return {"response": await predict("drought", extract_city(t))}
 
-    # 6. LANDSLIDE
     if any(w in t for w in ["landslide", "bhoosakhal", "mudslide"]):
         return {"response": await predict("landslide", extract_city(t))}
 
-    # 7. WILDFIRE
     if any(w in t for w in ["wildfire", "forest fire", "jungle fire", "aag", "fire"]):
         return {"response": await predict("wildfire", extract_city(t))}
 
-    # 8. TSUNAMI
     if any(w in t for w in ["tsunami", "tidal wave", "seawave", "samudri lehar"]):
         return {"response": await predict("tsunami", extract_city(t))}
 
-    # 9. GENERAL RISK
     if any(w in t for w in ["risk", "danger", "khatra", "prediction", "predict"]):
         return {"response": await predict("flood", extract_city(t))}
 
-    # 10. HISTORICAL QUERIES
     if "uttarakhand" in t and "2013" in t:
         return {"response": "📅 2013 Uttarakhand Flash Flood:\n• 6,054 deaths recorded\n• Lakho log homeless hue\n• Kedarnath sabse zyada affected tha\n• India ka worst flood disaster tha"}
 
@@ -448,30 +418,29 @@ async def chat_endpoint(chat_data: ChatInput):
         return {"response": "📅 2018 Kerala Floods:\n• 504 deaths\n• 5.4 million log affected\n• 100 saal ka sabse bada flood\n• 14 districts affected the"}
 
     if "bihar" in t and "flood" in t:
-        return {"response": "🌊 Bihar Floods History:\n• 1900-2021 mein 50+ flood events\n• Kosi river ko 'Bihar ka Shok' kehte hain\n• Sabse affected: Darbhanga, Muzaffarpur, Sitamarhi\n• 2008 mein Kosi river ne 3 million log affect kiye the"}
+        return {"response": "🌊 Bihar Floods History:\n• 1900-2021 mein 50+ flood events\n• Kosi river ko 'Bihar ka Shok' kehte hain\n• Sabse affected: Darbhanga, Muzaffarpur, Sitamarhi"}
 
     if "worst" in t or "sabse bura" in t:
-        return {"response": "😮 India ka Sabse Bura Flood:\n• 1987 mein aaya tha\n• 1,399 deaths\n• 40 million log affected\n• Bihar, UP, West Bengal sabse zyada affected the"}
+        return {"response": "😮 India ka Sabse Bura Flood:\n• 1987 mein aaya tha\n• 1,399 deaths\n• 40 million log affected"}
 
     if "assam" in t and "flood" in t:
-        return {"response": "🌊 Assam Floods:\n• India ka sabse flood-prone state\n• Brahmaputra river ki wajah se har saal flooding\n• 2022 mein 32 lakh log affected\n• Kaziranga National Park bhi affected hota hai"}
+        return {"response": "🌊 Assam Floods:\n• India ka sabse flood-prone state\n• Brahmaputra river ki wajah se har saal flooding\n• 2022 mein 32 lakh log affected"}
 
     if "odisha" in t or ("cyclone" in t and "history" in t):
-        return {"response": "🌀 Odisha Cyclones:\n• India ka sabse cyclone-prone state\n• 1999 Super Cyclone: 10,000+ deaths\n• 2013 Phailin: 45 deaths (better preparedness)\n• Ab early warning system bahut strong hai"}
+        return {"response": "🌀 Odisha Cyclones:\n• 1999 Super Cyclone: 10,000+ deaths\n• 2013 Phailin: 45 deaths\n• Ab early warning system strong hai"}
 
     if "bhuj" in t or ("earthquake" in t and "2001" in t):
-        return {"response": "🏔️ 2001 Bhuj Earthquake:\n• Richter scale: 7.7\n• 20,000+ deaths\n• 1.6 lakh injured\n• India ka deadliest earthquake\n• Gujarat mein massive destruction"}
+        return {"response": "🏔️ 2001 Bhuj Earthquake:\n• Richter scale: 7.7\n• 20,000+ deaths\n• India ka deadliest earthquake"}
 
     if "2004" in t and "tsunami" in t:
-        return {"response": "🌊 2004 Indian Ocean Tsunami:\n• 10,000+ deaths in India\n• Tamil Nadu, Andhra Pradesh, Kerala affected\n• 9.1 magnitude earthquake se aaya tha\n• 14 countries affected hue globally"}
+        return {"response": "🌊 2004 Indian Ocean Tsunami:\n• 10,000+ deaths in India\n• Tamil Nadu, Andhra Pradesh, Kerala affected\n• 9.1 magnitude earthquake se aaya tha"}
 
     if "kedarnath" in t:
-        return {"response": "⛰️ 2013 Kedarnath Disaster:\n• Flash flood + landslide combo\n• 5,000+ deaths\n• India ka worst multi-disaster event\n• Char Dham Yatra rok di gayi thi"}
+        return {"response": "⛰️ 2013 Kedarnath Disaster:\n• Flash flood + landslide combo\n• 5,000+ deaths\n• India ka worst multi-disaster event"}
 
-    # 11. DEFAULT
     return {
         "response": (
-            "🙏 Main FloodGuard AI hoon!\n\n"
+            "🙏 Main DisasterGuard AI hoon!\n\n"
             "Mujhse poochh sakte ho:\n\n"
             "🌤️ Weather:    'Dehradun weather'\n"
             "🌊 Flood:      'Moradabad flood risk'\n"
