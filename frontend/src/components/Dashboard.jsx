@@ -415,14 +415,39 @@ function StatCard({ label, rawValue, displayValue, icon, color, sub, delay = 0 }
 
 // ── Chart Card wrapper ────────────────────────────────────
 function ChartCard({ title, note, children, color, delay = 0 }) {
-  const [visible, setVisible] = useState(false);
+  const [visible,      setVisible]      = useState(false);
+  const [downloading,  setDownloading]  = useState(false);
+  const [btnHovered,   setBtnHovered]   = useState(false);
+  const cardRef = useRef(null);
+
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), delay);
     return () => clearTimeout(t);
   }, [delay]);
 
+  const handleDownload = async () => {
+    if (!cardRef.current || downloading) return;
+    setDownloading(true);
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(cardRef.current, {
+        backgroundColor: "#0d1520",
+        scale: 2,
+        useCORS: true,
+        logging: false,
+      });
+      const link = document.createElement("a");
+      link.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (err) {
+      console.error("Export failed:", err);
+    }
+    setDownloading(false);
+  };
+
   return (
-    <div style={{
+    <div ref={cardRef} style={{
       background: "linear-gradient(135deg, #0d1520 0%, #080d14 100%)",
       border: "1px solid #1a2840",
       borderRadius: 14,
@@ -439,11 +464,48 @@ function ChartCard({ title, note, children, color, delay = 0 }) {
         position: "absolute", top: 0, left: 0, right: 0, height: 2,
         background: `linear-gradient(90deg, ${color}, transparent)`,
       }} />
-      <p style={{
-        margin: "0 0 4px 0", fontSize: 11, fontWeight: 700,
-        letterSpacing: "1.5px", color: "#8ab4d4", textTransform: "uppercase",
-        fontFamily: "Space Mono, monospace",
-      }}>{title}</p>
+
+      {/* Header row with download button */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
+        <p style={{
+          margin: 0, fontSize: 11, fontWeight: 700,
+          letterSpacing: "1.5px", color: "#8ab4d4", textTransform: "uppercase",
+          fontFamily: "Space Mono, monospace", flex: 1,
+        }}>{title}</p>
+
+        {/* Download button */}
+        <button
+          onClick={handleDownload}
+          onMouseEnter={() => setBtnHovered(true)}
+          onMouseLeave={() => setBtnHovered(false)}
+          title="Download as PNG"
+          style={{
+            background: btnHovered ? `${color}20` : "transparent",
+            border: `1px solid ${btnHovered ? color + "60" : "#1a2840"}`,
+            borderRadius: 8,
+            padding: "4px 10px",
+            cursor: downloading ? "wait" : "pointer",
+            color: btnHovered ? color : "#4a6a8a",
+            fontSize: 11,
+            fontFamily: "monospace",
+            display: "flex", alignItems: "center", gap: 5,
+            transition: "all 0.2s ease",
+            flexShrink: 0,
+            marginLeft: 8,
+            boxShadow: btnHovered ? `0 0 12px ${color}30` : "none",
+          }}
+        >
+          {downloading ? (
+            <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span>
+          ) : (
+            <>
+              <span>📥</span>
+              <span style={{ fontSize: 9, letterSpacing: "0.5px" }}>PNG</span>
+            </>
+          )}
+        </button>
+      </div>
+
       {note && (
         <div style={{ fontSize: 10, fontFamily: "monospace", color: "#4a6a8a", marginBottom: 14 }}>
           {note}
@@ -737,6 +799,10 @@ export default function Dashboard({ disasterType = "flood" }) {
         }
         @keyframes barSlide {
           from { width: 0; }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to   { transform: rotate(360deg); }
         }
       `}</style>
     </div>
