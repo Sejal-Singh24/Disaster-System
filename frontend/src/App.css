@@ -154,3 +154,14 @@ body {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--surface); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.chatbot-main {
+  position: relative;
+  z-index: 5;
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+}
+
+.chatbot-main:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 40px rgba(0, 224, 255, 0.8);
+}

@@ -610,7 +610,13 @@ export default function Chatbot({ disasterType = "flood" }) {
       <div className="cg-root">
 
         {/* ── CHAT PANEL ── */}
-        <div className="cg-chat" style={{ borderColor: theme.color + "22" }}>
+        <div 
+  className="cg-chat chatbot-main" 
+  style={{ 
+    borderColor: theme.color + "55",
+    boxShadow: `0 0 25px ${theme.color}55`
+  }}
+>
           <div className="cg-chat-top-bar" style={{ background: `linear-gradient(90deg, ${theme.color}, #0080ff, #7c3aed, ${theme.color})`, backgroundSize: "200%", animation: "gradientShift 3s linear infinite" }} />
 
           {/* Header — Glassmorphism */}
@@ -619,7 +625,20 @@ export default function Chatbot({ disasterType = "flood" }) {
               {theme.icon}
             </div>
             <div>
-              <div className="cg-title">DisasterGuard AI</div>
+              <div className="cg-title">
+  🤖 DisasterGuard AI 
+  <span style={{
+    marginLeft: "8px",
+    fontSize: "10px",
+    padding: "2px 6px",
+    borderRadius: "6px",
+    background: "#00e67620",
+    color: "#00e676",
+    fontWeight: "700"
+  }}>
+    MAIN
+  </span>
+</div>
               <div className="cg-badges">
                 <span className="cg-badge">ML Model</span>
                 <span className="cg-badge">EMDAT 1900–2021</span>
