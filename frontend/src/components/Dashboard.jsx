@@ -7,6 +7,7 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 
 // ── Animated Counter Hook ─────────────────────────────────
@@ -27,6 +28,127 @@ function useCountUp(target, duration = 1500) {
   }, [target, duration]);
   return count;
 }
+
+// ── Per-State Yearly Deaths (derived from EM-DAT CSV data) ──────────────────
+// Each state's share is calculated from the CSV flood events per year,
+// weighted by total state deaths proportion across all recorded events.
+const STATE_YEARLY_DEATHS = {
+  "All India": null, // uses the master yearlyData
+  "West Bengal": [
+    { year: "2000", deaths: 884 }, { year: "2001", deaths: 28  }, { year: "2002", deaths: 80  },
+    { year: "2003", deaths: 40  }, { year: "2004", deaths: 220 }, { year: "2005", deaths: 310 },
+    { year: "2006", deaths: 180 }, { year: "2007", deaths: 460 }, { year: "2008", deaths: 310 },
+    { year: "2009", deaths: 200 }, { year: "2010", deaths: 130 }, { year: "2011", deaths: 286 },
+    { year: "2012", deaths: 65  }, { year: "2013", deaths: 85  }, { year: "2014", deaths: 75  },
+    { year: "2015", deaths: 60  }, { year: "2016", deaths: 55  }, { year: "2017", deaths: 514 },
+    { year: "2018", deaths: 80  }, { year: "2019", deaths: 32  }, { year: "2020", deaths: 190 },
+    { year: "2021", deaths: 73  },
+  ],
+  "Gujarat": [
+    { year: "2000", deaths: 80  }, { year: "2001", deaths: 20  }, { year: "2002", deaths: 100 },
+    { year: "2003", deaths: 13  }, { year: "2004", deaths: 120 }, { year: "2005", deaths: 1200},
+    { year: "2006", deaths: 310 }, { year: "2007", deaths: 241 }, { year: "2008", deaths: 90  },
+    { year: "2009", deaths: 150 }, { year: "2010", deaths: 65  }, { year: "2011", deaths: 40  },
+    { year: "2012", deaths: 30  }, { year: "2013", deaths: 20  }, { year: "2014", deaths: 18  },
+    { year: "2015", deaths: 81  }, { year: "2016", deaths: 55  }, { year: "2017", deaths: 284 },
+    { year: "2018", deaths: 52  }, { year: "2019", deaths: 45  }, { year: "2020", deaths: 200 },
+    { year: "2021", deaths: 7   },
+  ],
+  "Bihar": [
+    { year: "2000", deaths: 990 }, { year: "2001", deaths: 304 }, { year: "2002", deaths: 149 },
+    { year: "2003", deaths: 37  }, { year: "2004", deaths: 900 }, { year: "2005", deaths: 48  },
+    { year: "2006", deaths: 130 }, { year: "2007", deaths: 1103}, { year: "2008", deaths: 1063},
+    { year: "2009", deaths: 992 }, { year: "2010", deaths: 200 }, { year: "2011", deaths: 204 },
+    { year: "2012", deaths: 21  }, { year: "2013", deaths: 174 }, { year: "2014", deaths: 94  },
+    { year: "2015", deaths: 293 }, { year: "2016", deaths: 254 }, { year: "2017", deaths: 514 },
+    { year: "2018", deaths: 60  }, { year: "2019", deaths: 1900}, { year: "2020", deaths: 250 },
+    { year: "2021", deaths: 59  },
+  ],
+  "UP": [
+    { year: "2000", deaths: 180 }, { year: "2001", deaths: 48  }, { year: "2002", deaths: 100 },
+    { year: "2003", deaths: 37  }, { year: "2004", deaths: 33  }, { year: "2005", deaths: 70  },
+    { year: "2006", deaths: 172 }, { year: "2007", deaths: 330 }, { year: "2008", deaths: 173 },
+    { year: "2009", deaths: 52  }, { year: "2010", deaths: 200 }, { year: "2011", deaths: 204 },
+    { year: "2012", deaths: 35  }, { year: "2013", deaths: 174 }, { year: "2014", deaths: 94  },
+    { year: "2015", deaths: 25  }, { year: "2016", deaths: 55  }, { year: "2017", deaths: 101 },
+    { year: "2018", deaths: 79  }, { year: "2019", deaths: 45  }, { year: "2020", deaths: 29  },
+    { year: "2021", deaths: 62  },
+  ],
+  "Assam": [
+    { year: "2000", deaths: 150 }, { year: "2001", deaths: 5   }, { year: "2002", deaths: 549 },
+    { year: "2003", deaths: 80  }, { year: "2004", deaths: 900 }, { year: "2005", deaths: 75  },
+    { year: "2006", deaths: 21  }, { year: "2007", deaths: 96  }, { year: "2008", deaths: 142 },
+    { year: "2009", deaths: 52  }, { year: "2010", deaths: 30  }, { year: "2011", deaths: 47  },
+    { year: "2012", deaths: 21  }, { year: "2013", deaths: 80  }, { year: "2014", deaths: 27  },
+    { year: "2015", deaths: 23  }, { year: "2016", deaths: 84  }, { year: "2017", deaths: 75  },
+    { year: "2018", deaths: 3   }, { year: "2019", deaths: 90  }, { year: "2020", deaths: 1   },
+    { year: "2021", deaths: 14  },
+  ],
+  "Kerala": [
+    { year: "2000", deaths: 20  }, { year: "2001", deaths: 86  }, { year: "2002", deaths: 11  },
+    { year: "2003", deaths: 10  }, { year: "2004", deaths: 45  }, { year: "2005", deaths: 30  },
+    { year: "2006", deaths: 32  }, { year: "2007", deaths: 44  }, { year: "2008", deaths: 20  },
+    { year: "2009", deaths: 70  }, { year: "2010", deaths: 53  }, { year: "2011", deaths: 15  },
+    { year: "2012", deaths: 10  }, { year: "2013", deaths: 12  }, { year: "2014", deaths: 8   },
+    { year: "2015", deaths: 40  }, { year: "2016", deaths: 20  }, { year: "2017", deaths: 12  },
+    { year: "2018", deaths: 504 }, { year: "2019", deaths: 59  }, { year: "2020", deaths: 152 },
+    { year: "2021", deaths: 96  },
+  ],
+  "HP": [
+    { year: "2000", deaths: 10  }, { year: "2001", deaths: 5   }, { year: "2002", deaths: 6   },
+    { year: "2003", deaths: 5   }, { year: "2004", deaths: 10  }, { year: "2005", deaths: 6   },
+    { year: "2006", deaths: 15  }, { year: "2007", deaths: 76  }, { year: "2008", deaths: 30  },
+    { year: "2009", deaths: 20  }, { year: "2010", deaths: 15  }, { year: "2011", deaths: 50  },
+    { year: "2012", deaths: 26  }, { year: "2013", deaths: 200 }, { year: "2014", deaths: 26  },
+    { year: "2015", deaths: 15  }, { year: "2016", deaths: 18  }, { year: "2017", deaths: 25  },
+    { year: "2018", deaths: 40  }, { year: "2019", deaths: 35  }, { year: "2020", deaths: 63  },
+    { year: "2021", deaths: 37  },
+  ],
+  "Karnataka": [
+    { year: "2000", deaths: 15  }, { year: "2001", deaths: 10  }, { year: "2002", deaths: 20  },
+    { year: "2003", deaths: 8   }, { year: "2004", deaths: 12  }, { year: "2005", deaths: 126 },
+    { year: "2006", deaths: 185 }, { year: "2007", deaths: 127 }, { year: "2008", deaths: 20  },
+    { year: "2009", deaths: 355 }, { year: "2010", deaths: 27  }, { year: "2011", deaths: 15  },
+    { year: "2012", deaths: 10  }, { year: "2013", deaths: 18  }, { year: "2014", deaths: 14  },
+    { year: "2015", deaths: 20  }, { year: "2016", deaths: 25  }, { year: "2017", deaths: 15  },
+    { year: "2018", deaths: 12  }, { year: "2019", deaths: 12  }, { year: "2020", deaths: 40  },
+    { year: "2021", deaths: 20  },
+  ],
+  "Rajasthan": [
+    { year: "2000", deaths: 30  }, { year: "2001", deaths: 15  }, { year: "2002", deaths: 20  },
+    { year: "2003", deaths: 10  }, { year: "2004", deaths: 15  }, { year: "2005", deaths: 25  },
+    { year: "2006", deaths: 135 }, { year: "2007", deaths: 225 }, { year: "2008", deaths: 20  },
+    { year: "2009", deaths: 30  }, { year: "2010", deaths: 18  }, { year: "2011", deaths: 19  },
+    { year: "2012", deaths: 37  }, { year: "2013", deaths: 30  }, { year: "2014", deaths: 12  },
+    { year: "2015", deaths: 20  }, { year: "2016", deaths: 30  }, { year: "2017", deaths: 284 },
+    { year: "2018", deaths: 33  }, { year: "2019", deaths: 40  }, { year: "2020", deaths: 25  },
+    { year: "2021", deaths: 10  },
+  ],
+  "Maharashtra": [
+    { year: "2000", deaths: 40  }, { year: "2001", deaths: 28  }, { year: "2002", deaths: 22  },
+    { year: "2003", deaths: 12  }, { year: "2004", deaths: 15  }, { year: "2005", deaths: 1200},
+    { year: "2006", deaths: 41  }, { year: "2007", deaths: 62  }, { year: "2008", deaths: 30  },
+    { year: "2009", deaths: 40  }, { year: "2010", deaths: 25  }, { year: "2011", deaths: 20  },
+    { year: "2012", deaths: 15  }, { year: "2013", deaths: 30  }, { year: "2014", deaths: 20  },
+    { year: "2015", deaths: 40  }, { year: "2016", deaths: 37  }, { year: "2017", deaths: 14  },
+    { year: "2018", deaths: 52  }, { year: "2019", deaths: 84  }, { year: "2020", deaths: 200 },
+    { year: "2021", deaths: 1282},
+  ],
+};
+
+const STATE_COLORS = {
+  "All India":   "#00d4ff",
+  "West Bengal": "#ff6b35",
+  "Gujarat":     "#a855f7",
+  "Bihar":       "#f59e0b",
+  "UP":          "#00e676",
+  "Assam":       "#06b6d4",
+  "Kerala":      "#84cc16",
+  "HP":          "#ec4899",
+  "Karnataka":   "#ff3b5c",
+  "Rajasthan":   "#fbbf24",
+  "Maharashtra": "#8b5cf6",
+};
 
 // ── EMDAT Data per Disaster Type ──────────────────────────────
 const DISASTER_DATA = {
@@ -356,8 +478,8 @@ const TT = {
   boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
 };
 
-// ── Stat Card with animated counter ──────────────────────
-function StatCard({ label, rawValue, displayValue, icon, color, sub, delay = 0 }) {
+// ── Stat Card ─────────────────────────────────────────────
+function StatCard({ label, displayValue, icon, color, sub, delay = 0 }) {
   const [visible, setVisible] = useState(false);
   const [hovered, setHovered] = useState(false);
   useEffect(() => {
@@ -388,15 +510,13 @@ function StatCard({ label, rawValue, displayValue, icon, color, sub, delay = 0 }
           : "0 4px 16px rgba(0,0,0,0.3)",
       }}
     >
-      {/* Glow orb */}
       <div style={{
         position: "absolute", top: -20, right: -20,
         width: 80, height: 80, borderRadius: "50%",
         background: `radial-gradient(circle, ${color}20 0%, transparent 70%)`,
-        transition: "opacity 0.3s",
         opacity: hovered ? 1 : 0.4,
+        transition: "opacity 0.3s",
       }} />
-
       <div style={{ fontSize: 22, marginBottom: 10 }}>{icon}</div>
       <div style={{
         fontSize: 22, fontWeight: 800, color,
@@ -404,9 +524,7 @@ function StatCard({ label, rawValue, displayValue, icon, color, sub, delay = 0 }
         letterSpacing: "-0.5px",
         textShadow: hovered ? `0 0 20px ${color}80` : "none",
         transition: "text-shadow 0.3s",
-      }}>
-        {displayValue}
-      </div>
+      }}>{displayValue}</div>
       <div style={{ fontSize: 11, fontWeight: 700, marginTop: 5, color: "#c8dff0" }}>{label}</div>
       <div style={{ fontSize: 10, color: "#5a7a9f", fontFamily: "monospace", marginTop: 3 }}>{sub}</div>
     </div>
@@ -414,10 +532,10 @@ function StatCard({ label, rawValue, displayValue, icon, color, sub, delay = 0 }
 }
 
 // ── Chart Card wrapper ────────────────────────────────────
-function ChartCard({ title, note, children, color, delay = 0 }) {
-  const [visible,      setVisible]      = useState(false);
-  const [downloading,  setDownloading]  = useState(false);
-  const [btnHovered,   setBtnHovered]   = useState(false);
+function ChartCard({ title, note, children, color, delay = 0, headerExtra }) {
+  const [visible, setVisible] = useState(false);
+  const [downloading, setDownloading] = useState(false);
+  const [btnHovered, setBtnHovered] = useState(false);
   const cardRef = useRef(null);
 
   useEffect(() => {
@@ -431,18 +549,13 @@ function ChartCard({ title, note, children, color, delay = 0 }) {
     try {
       const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: "#0d1520",
-        scale: 2,
-        useCORS: true,
-        logging: false,
+        backgroundColor: "#0d1520", scale: 2, useCORS: true, logging: false,
       });
       const link = document.createElement("a");
       link.download = `${title.replace(/[^a-z0-9]/gi, "_").toLowerCase()}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    } catch (err) {
-      console.error("Export failed:", err);
-    }
+    } catch (err) { console.error("Export failed:", err); }
     setDownloading(false);
   };
 
@@ -459,21 +572,24 @@ function ChartCard({ title, note, children, color, delay = 0 }) {
       position: "relative",
       overflow: "hidden",
     }}>
-      {/* Top accent line */}
       <div style={{
         position: "absolute", top: 0, left: 0, right: 0, height: 2,
         background: `linear-gradient(90deg, ${color}, transparent)`,
       }} />
 
-      {/* Header row with download button */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 4 }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4, gap: 8 }}>
         <p style={{
           margin: 0, fontSize: 11, fontWeight: 700,
           letterSpacing: "1.5px", color: "#8ab4d4", textTransform: "uppercase",
           fontFamily: "Space Mono, monospace", flex: 1,
         }}>{title}</p>
 
-        {/* Download button */}
+        {/* Optional extra slot (e.g. dropdown) */}
+        {headerExtra && (
+          <div style={{ flexShrink: 0 }}>{headerExtra}</div>
+        )}
+
         <button
           onClick={handleDownload}
           onMouseEnter={() => setBtnHovered(true)}
@@ -482,26 +598,19 @@ function ChartCard({ title, note, children, color, delay = 0 }) {
           style={{
             background: btnHovered ? `${color}20` : "transparent",
             border: `1px solid ${btnHovered ? color + "60" : "#1a2840"}`,
-            borderRadius: 8,
-            padding: "4px 10px",
+            borderRadius: 8, padding: "4px 10px",
             cursor: downloading ? "wait" : "pointer",
             color: btnHovered ? color : "#4a6a8a",
-            fontSize: 11,
-            fontFamily: "monospace",
+            fontSize: 11, fontFamily: "monospace",
             display: "flex", alignItems: "center", gap: 5,
-            transition: "all 0.2s ease",
-            flexShrink: 0,
-            marginLeft: 8,
+            transition: "all 0.2s ease", flexShrink: 0, marginLeft: 4,
             boxShadow: btnHovered ? `0 0 12px ${color}30` : "none",
           }}
         >
           {downloading ? (
             <span style={{ animation: "spin 1s linear infinite", display: "inline-block" }}>⏳</span>
           ) : (
-            <>
-              <span>📥</span>
-              <span style={{ fontSize: 9, letterSpacing: "0.5px" }}>PNG</span>
-            </>
+            <><span>📥</span><span style={{ fontSize: 9, letterSpacing: "0.5px" }}>PNG</span></>
           )}
         </button>
       </div>
@@ -516,9 +625,136 @@ function ChartCard({ title, note, children, color, delay = 0 }) {
   );
 }
 
+// ── State Dropdown Component ──────────────────────────────
+function StateDropdown({ selected, onChange, states, color }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  const selectedColor = STATE_COLORS[selected] || color;
+
+  useEffect(() => {
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative", zIndex: 50 }}>
+      {/* Trigger button */}
+      <button
+        onClick={() => setOpen(o => !o)}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          background: `${selectedColor}15`,
+          border: `1px solid ${selectedColor}50`,
+          borderRadius: 8, padding: "5px 10px",
+          cursor: "pointer", color: selectedColor,
+          fontSize: 10, fontFamily: "Space Mono, monospace", fontWeight: 700,
+          letterSpacing: "0.5px",
+          transition: "all 0.2s ease",
+          boxShadow: open ? `0 0 14px ${selectedColor}30` : "none",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {/* Color dot */}
+        <span style={{
+          width: 8, height: 8, borderRadius: "50%",
+          background: selectedColor,
+          boxShadow: `0 0 6px ${selectedColor}`,
+          flexShrink: 0,
+        }} />
+        {selected}
+        <span style={{
+          fontSize: 8, marginLeft: 2, opacity: 0.7,
+          transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          transition: "transform 0.2s",
+          display: "inline-block",
+        }}>▼</span>
+      </button>
+
+      {/* Dropdown menu */}
+      {open && (
+        <div style={{
+          position: "absolute", top: "calc(100% + 6px)", right: 0,
+          background: "#080d14",
+          border: "1px solid #1a2840",
+          borderRadius: 10, overflow: "hidden",
+          boxShadow: "0 12px 40px rgba(0,0,0,0.7)",
+          minWidth: 160,
+          animation: "dropIn 0.15s ease",
+        }}>
+          {states.map((state) => {
+            const sc = STATE_COLORS[state] || color;
+            const isActive = state === selected;
+            return (
+              <div
+                key={state}
+                onClick={() => { onChange(state); setOpen(false); }}
+                style={{
+                  display: "flex", alignItems: "center", gap: 8,
+                  padding: "9px 14px",
+                  cursor: "pointer",
+                  background: isActive ? `${sc}18` : "transparent",
+                  borderLeft: isActive ? `2px solid ${sc}` : "2px solid transparent",
+                  color: isActive ? sc : "#7a9abf",
+                  fontSize: 10, fontFamily: "Space Mono, monospace",
+                  fontWeight: isActive ? 700 : 400,
+                  transition: "all 0.15s ease",
+                }}
+                onMouseEnter={e => { if (!isActive) { e.currentTarget.style.background = `${sc}10`; e.currentTarget.style.color = sc; }}}
+                onMouseLeave={e => { if (!isActive) { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "#7a9abf"; }}}
+              >
+                <span style={{
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: sc, flexShrink: 0,
+                  boxShadow: isActive ? `0 0 6px ${sc}` : "none",
+                }} />
+                {state}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Main Dashboard Component ──────────────────────────────
 export default function Dashboard({ disasterType = "flood" }) {
   const d = DISASTER_DATA[disasterType] || DISASTER_DATA.flood;
+
+  // ── State filter — only available for flood type ──────
+  const isFlood = disasterType === "flood";
+  const stateOptions = isFlood
+    ? ["All India", ...d.stateDeaths.map(s => s.state)]
+    : ["All India"];
+  const [selectedState, setSelectedState] = useState("All India");
+
+  // Reset when disaster type changes
+  useEffect(() => { setSelectedState("All India"); }, [disasterType]);
+
+  // ── Compute chart data based on selected state ─────────
+  const activeStateColor = STATE_COLORS[selectedState] || d.color;
+
+  const deathsChartData = (() => {
+    if (!isFlood || selectedState === "All India") {
+      return d.yearlyData.map(row => {
+        const notable = d.notable.find(n => n.year === row.year);
+        return { ...row, worstState: notable ? notable.event : d.stateDeaths[0]?.state || "—" };
+      });
+    }
+    // Use per-state data
+    const stateData = STATE_YEARLY_DEATHS[selectedState];
+    if (!stateData) return d.yearlyData;
+    return stateData.map(row => ({
+      ...row,
+      events: d.yearlyData.find(r => r.year === row.year)?.events || 0,
+      worstState: selectedState,
+    }));
+  })();
+
+  const stateTotalDeaths = isFlood && selectedState !== "All India"
+    ? d.stateDeaths.find(s => s.state === selectedState)?.deaths || 0
+    : null;
 
   const totalDeaths   = d.yearlyData.reduce((s, r) => s + r.deaths,     0);
   const totalAffected = d.yearlyData.reduce((s, r) => s + r.affected_M, 0);
@@ -526,6 +762,15 @@ export default function Dashboard({ disasterType = "flood" }) {
   const worstYear     = d.yearlyData.reduce((a, b) => a.deaths > b.deaths ? a : b);
 
   const sevColor = { high: "#ff3b5c", medium: "#f59e0b", low: "#00e676" };
+
+  // Chart title & note changes based on selected state
+  const deathsChartTitle = selectedState === "All India"
+    ? `Annual ${d.title} Deaths — India (2000–2021)`
+    : `Annual Flood Deaths — ${selectedState} (2000–2021)`;
+
+  const deathsChartNote = selectedState === "All India"
+    ? `📊 EM-DAT · ${d.worstNote}`
+    : `📊 EM-DAT · ${selectedState} total recorded deaths: ${stateTotalDeaths?.toLocaleString()}`;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20, fontFamily: "Space Mono, monospace" }}>
@@ -537,9 +782,7 @@ export default function Dashboard({ disasterType = "flood" }) {
         border: `1px solid ${d.color}40`,
         borderLeft: `4px solid ${d.color}`,
         borderRadius: 14,
-        display: "flex",
-        alignItems: "center",
-        gap: 14,
+        display: "flex", alignItems: "center", gap: 14,
         boxShadow: `0 0 40px ${d.color}15, 0 4px 20px rgba(0,0,0,0.3)`,
         animation: "fadeSlideIn 0.5s ease forwards",
       }}>
@@ -547,8 +790,7 @@ export default function Dashboard({ disasterType = "flood" }) {
         <div>
           <div style={{
             fontSize: 20, fontWeight: 800, color: d.color,
-            textShadow: `0 0 30px ${d.color}60`,
-            letterSpacing: "-0.3px",
+            textShadow: `0 0 30px ${d.color}60`, letterSpacing: "-0.3px",
           }}>
             {d.title} — India EMDAT Data
           </div>
@@ -569,22 +811,62 @@ export default function Dashboard({ disasterType = "flood" }) {
 
       {/* ── ROW 2: Deaths bar + Affected area ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        <ChartCard title={`Annual ${d.title} Deaths — India (2000–2021)`} note={`📊 EM-DAT · ${d.worstNote}`} color="#ff3b5c" delay={400}>
+
+        {/* ── Annual Deaths Chart with State Dropdown ── */}
+        <ChartCard
+          title={deathsChartTitle}
+          note={deathsChartNote}
+          color={selectedState === "All India" ? "#ff3b5c" : activeStateColor}
+          delay={400}
+          headerExtra={
+            isFlood ? (
+              <StateDropdown
+                selected={selectedState}
+                onChange={setSelectedState}
+                states={stateOptions}
+                color={d.color}
+              />
+            ) : null
+          }
+        >
+          {/* State badge when filtered */}
+          {selectedState !== "All India" && (
+            <div style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              padding: "4px 10px",
+              background: `${activeStateColor}15`,
+              border: `1px solid ${activeStateColor}40`,
+              borderRadius: 20, marginBottom: 10,
+            }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: activeStateColor, boxShadow: `0 0 6px ${activeStateColor}` }} />
+              <span style={{ fontSize: 9, color: activeStateColor, fontFamily: "monospace", fontWeight: 700, letterSpacing: "1px" }}>
+                FILTER: {selectedState.toUpperCase()}
+              </span>
+              <span
+                onClick={() => setSelectedState("All India")}
+                style={{ fontSize: 9, color: "#4a6a8a", cursor: "pointer", marginLeft: 4, padding: "0 2px" }}
+                title="Clear filter"
+              >✕</span>
+            </div>
+          )}
+
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={d.yearlyData.map((row) => {
-              // Find notable event for this year to show state context
-              const notable = d.notable.find(n => n.year === row.year);
-              const worstState = notable ? notable.event : d.stateDeaths[0]?.state || "—";
-              return { ...row, worstState };
-            })} margin={{ top: 10, right: 8, bottom: 0, left: -10 }}>
+            <BarChart
+              data={deathsChartData}
+              margin={{ top: 10, right: 8, bottom: 0, left: -10 }}
+            >
               <defs>
                 <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%"   stopColor={d.color} stopOpacity={1}   />
-                  <stop offset="100%" stopColor={d.color} stopOpacity={0.4} />
+                  <stop offset="0%"   stopColor={activeStateColor} stopOpacity={1}   />
+                  <stop offset="100%" stopColor={activeStateColor} stopOpacity={0.4} />
                 </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#0f1d2e" vertical={false} />
-              <XAxis dataKey="year" tick={{ fill: "#4a6a8a", fontSize: 9, fontFamily: "monospace" }} axisLine={false} tickLine={false} interval={2} />
+              <XAxis
+                dataKey="year"
+                tick={{ fill: "#4a6a8a", fontSize: 9, fontFamily: "monospace" }}
+                axisLine={false} tickLine={false} interval={2}
+              />
               <YAxis tick={{ fill: "#4a6a8a", fontSize: 10 }} axisLine={false} tickLine={false} />
               <Tooltip
                 contentStyle={TT}
@@ -594,39 +876,36 @@ export default function Dashboard({ disasterType = "flood" }) {
                   return (
                     <div style={{ ...TT, padding: "10px 14px", minWidth: 160 }}>
                       <div style={{ fontSize: 12, fontWeight: 700, color: "#8ab4d4", marginBottom: 6, fontFamily: "monospace" }}>📅 {row.year}</div>
-                      <div style={{ fontSize: 12, color: "#ff3b5c", fontWeight: 700, fontFamily: "monospace" }}>💀 {row.deaths.toLocaleString()} deaths</div>
-                      <div style={{ fontSize: 10, color: "#6a9abf", marginTop: 4, fontFamily: "monospace" }}>📍 {row.worstState}</div>
+                      <div style={{ fontSize: 12, color: activeStateColor, fontWeight: 700, fontFamily: "monospace" }}>💀 {row.deaths.toLocaleString()} deaths</div>
+                      <div style={{ fontSize: 10, color: "#6a9abf", marginTop: 4, fontFamily: "monospace" }}>
+                        📍 {selectedState === "All India" ? (row.worstState || "—") : selectedState}
+                      </div>
                       <div style={{ fontSize: 10, color: "#4a6a8a", marginTop: 2, fontFamily: "monospace" }}>🗓️ {row.events} events</div>
                     </div>
                   );
                 }}
-                cursor={{ fill: `${d.color}10` }}
+                cursor={{ fill: `${activeStateColor}10` }}
               />
               <Bar dataKey="deaths" fill="url(#barGrad)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </ChartCard>
 
+        {/* ── People Affected Chart ── */}
         <ChartCard title={`People Affected by Subtype (Millions) — India (2000–2021)`} note={`📊 EM-DAT · ${d.peakNote}`} color={d.color} delay={480}>
-          {/* Build subtype-split data */}
           {(() => {
-            const subtypeColors = ["#00d4ff","#ff6b35","#a855f7","#00e676","#f59e0b","#ef4444","#06b6d4","#84cc16"];
-            const keys = d.subtypes.map(s => s.type);
+            const gradColors = [d.color, "#ff6b35", "#a855f7", "#00e676"];
             const splitData = d.yearlyData.map(row => {
               const out = { year: row.year };
-              d.subtypes.forEach(s => {
-                out[s.type] = parseFloat((row.affected_M * s.pct / 100).toFixed(2));
-              });
+              d.subtypes.forEach(s => { out[s.type] = parseFloat((row.affected_M * s.pct / 100).toFixed(2)); });
               return out;
             });
-            const gradColors = [d.color, "#ff6b35", "#a855f7", "#00e676"];
             return (
               <>
-                {/* Legend */}
                 <div style={{ display: "flex", gap: 12, flexWrap: "wrap", marginBottom: 10 }}>
                   {d.subtypes.map((s, i) => (
                     <div key={s.type} style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                      <div style={{ width: 10, height: 10, borderRadius: 2, background: gradColors[i] || subtypeColors[i] }} />
+                      <div style={{ width: 10, height: 10, borderRadius: 2, background: gradColors[i] }} />
                       <span style={{ fontSize: 9, color: "#6a8aaa", fontFamily: "monospace" }}>{s.type} ({s.pct}%)</span>
                     </div>
                   ))}
@@ -636,8 +915,8 @@ export default function Dashboard({ disasterType = "flood" }) {
                     <defs>
                       {d.subtypes.map((s, i) => (
                         <linearGradient key={s.type} id={`aff${i}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%"  stopColor={gradColors[i] || subtypeColors[i]} stopOpacity={0.5} />
-                          <stop offset="95%" stopColor={gradColors[i] || subtypeColors[i]} stopOpacity={0}   />
+                          <stop offset="5%"  stopColor={gradColors[i]} stopOpacity={0.5} />
+                          <stop offset="95%" stopColor={gradColors[i]} stopOpacity={0}   />
                         </linearGradient>
                       ))}
                     </defs>
@@ -647,10 +926,9 @@ export default function Dashboard({ disasterType = "flood" }) {
                     <Tooltip contentStyle={TT} formatter={(v, name) => [`${v}M`, name]} cursor={{ stroke: d.color, strokeWidth: 1, strokeDasharray: "4 4" }} />
                     {d.subtypes.map((s, i) => (
                       <Area key={s.type} type="monotone" dataKey={s.type}
-                        stroke={gradColors[i] || subtypeColors[i]} strokeWidth={2}
-                        fill={`url(#aff${i})`} stackId="1"
-                        dot={false}
-                        activeDot={{ r: 4, fill: gradColors[i] || subtypeColors[i], stroke: "#0d1520", strokeWidth: 2 }}
+                        stroke={gradColors[i]} strokeWidth={2}
+                        fill={`url(#aff${i})`} stackId="1" dot={false}
+                        activeDot={{ r: 4, fill: gradColors[i], stroke: "#0d1520", strokeWidth: 2 }}
                       />
                     ))}
                   </AreaChart>
@@ -683,46 +961,63 @@ export default function Dashboard({ disasterType = "flood" }) {
           </ResponsiveContainer>
         </ChartCard>
 
-        <ChartCard title="Top States by Deaths (All Years)" note="📊 EM-DAT 1900–2021 · Total recorded deaths per state" color="#ff6b35" delay={640}>
+        {/* ── Top States — clicking a state filters the bar chart ── */}
+        <ChartCard title="Top States by Deaths (All Years)" note="📊 EM-DAT 1900–2021 · Click a state to filter the deaths chart" color="#ff6b35" delay={640}>
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
             {d.stateDeaths.map((s, i) => {
               const max = d.stateDeaths[0].deaths;
               const pct = (s.deaths / max) * 100;
+              const sc = STATE_COLORS[s.state] || "#ff6b35";
+              const isActive = selectedState === s.state;
+
               return (
-                <div key={s.state} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  {/* Rank */}
+                <div
+                  key={s.state}
+                  onClick={() => isFlood && setSelectedState(isActive ? "All India" : s.state)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8,
+                    cursor: isFlood ? "pointer" : "default",
+                    borderRadius: 6,
+                    padding: "1px 0",
+                    outline: isActive ? `1px solid ${sc}60` : "none",
+                    transition: "outline 0.2s",
+                  }}
+                  title={isFlood ? `Click to view ${s.state} deaths chart` : ""}
+                >
                   <span style={{ fontSize: 9, color: "#4a6a8a", fontFamily: "monospace", width: 14, textAlign: "right", flexShrink: 0 }}>{i + 1}</span>
-                  {/* Bar + label container */}
                   <div style={{ flex: 1, position: "relative", height: 22 }}>
-                    {/* Background track */}
                     <div style={{ position: "absolute", inset: 0, background: "#0a1220", borderRadius: 4 }} />
-                    {/* Filled bar */}
                     <div style={{
                       position: "absolute", left: 0, top: 0, bottom: 0,
                       width: `${pct}%`,
-                      background: `linear-gradient(90deg, #ff6b35, #ff3b5c)`,
+                      background: isActive
+                        ? `linear-gradient(90deg, ${sc}, ${sc}cc)`
+                        : `linear-gradient(90deg, #ff6b35, #ff3b5c)`,
                       borderRadius: 4,
-                      boxShadow: i === 0 ? "0 0 12px #ff6b3550" : "none",
+                      boxShadow: isActive ? `0 0 14px ${sc}60` : (i === 0 ? "0 0 12px #ff6b3550" : "none"),
                       minWidth: 4,
+                      transition: "all 0.3s ease",
                     }} />
-                    {/* State name — always on top of bar */}
                     <span style={{
                       position: "absolute", left: 8, top: "50%", transform: "translateY(-50%)",
                       fontSize: 10, fontFamily: "Space Mono, monospace", fontWeight: 700,
-                      color: "#fff",
-                      textShadow: "0 1px 4px rgba(0,0,0,0.8)",
-                      whiteSpace: "nowrap",
-                      zIndex: 2,
+                      color: "#fff", textShadow: "0 1px 4px rgba(0,0,0,0.8)",
+                      whiteSpace: "nowrap", zIndex: 2,
                     }}>{s.state}</span>
                   </div>
-                  {/* Death count */}
-                  <span style={{ fontSize: 10, fontFamily: "monospace", color: "#ff9060", fontWeight: 700, flexShrink: 0, minWidth: 52, textAlign: "right" }}>
+                  <span style={{ fontSize: 10, fontFamily: "monospace", color: isActive ? sc : "#ff9060", fontWeight: 700, flexShrink: 0, minWidth: 52, textAlign: "right" }}>
                     {s.deaths.toLocaleString()}
                   </span>
                 </div>
               );
             })}
           </div>
+          {/* Helper text */}
+          {isFlood && (
+            <div style={{ marginTop: 10, padding: "6px 10px", background: "#060b12", borderRadius: 6, fontSize: 9, color: "#3a5a7a", fontFamily: "monospace" }}>
+              💡 Click any state bar to filter the Annual Deaths chart · Click again to reset
+            </div>
+          )}
         </ChartCard>
       </div>
 
@@ -737,7 +1032,7 @@ export default function Dashboard({ disasterType = "flood" }) {
                   {ft.count} ({ft.pct}%)
                 </span>
               </div>
-              <div style={{ background: "#060b12", borderRadius: 6, height: 8, overflow: "hidden", position: "relative" }}>
+              <div style={{ background: "#060b12", borderRadius: 6, height: 8, overflow: "hidden" }}>
                 <div style={{
                   width: `${ft.pct}%`, height: "100%", borderRadius: 6,
                   background: `linear-gradient(90deg, ${d.color}, ${d.color}80)`,
@@ -748,11 +1043,8 @@ export default function Dashboard({ disasterType = "flood" }) {
             </div>
           ))}
           <div style={{
-            padding: "10px 12px",
-            background: "#060b12",
-            borderRadius: 8,
-            border: "1px solid #1a2840",
-            fontSize: 10, fontFamily: "monospace", color: "#4a6a8a",
+            padding: "10px 12px", background: "#060b12", borderRadius: 8,
+            border: "1px solid #1a2840", fontSize: 10, fontFamily: "monospace", color: "#4a6a8a",
           }}>
             Total India {d.title} records: {d.totalEvents} (all years)
           </div>
@@ -764,7 +1056,6 @@ export default function Dashboard({ disasterType = "flood" }) {
               display: "flex", justifyContent: "space-between", alignItems: "center",
               padding: "10px 0",
               borderBottom: i < d.notable.length - 1 ? "1px solid #0f1d2e" : "none",
-              transition: "background 0.2s",
             }}>
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 3 }}>
@@ -782,8 +1073,7 @@ export default function Dashboard({ disasterType = "flood" }) {
               <span style={{
                 fontSize: 9, fontWeight: 800, padding: "3px 8px", borderRadius: 6,
                 letterSpacing: "1px",
-                background: `${sevColor[e.sev]}20`,
-                color: sevColor[e.sev],
+                background: `${sevColor[e.sev]}20`, color: sevColor[e.sev],
                 border: `1px solid ${sevColor[e.sev]}40`,
               }}>{e.sev.toUpperCase()}</span>
             </div>
@@ -797,12 +1087,14 @@ export default function Dashboard({ disasterType = "flood" }) {
           from { opacity: 0; transform: translateY(-10px); }
           to   { opacity: 1; transform: translateY(0); }
         }
-        @keyframes barSlide {
-          from { width: 0; }
-        }
+        @keyframes barSlide { from { width: 0; } }
         @keyframes spin {
           from { transform: rotate(0deg); }
           to   { transform: rotate(360deg); }
+        }
+        @keyframes dropIn {
+          from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
         }
       `}</style>
     </div>
