@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
-import MapView       from "./components/MapView";
-import Dashboard     from "./components/Dashboard";
-import Chatbot       from "./components/Chatbot";
-import AlertFeed     from "./components/AlertFeed";
-import DisasterAlarm from "./components/DisasterAlarm";
+import { useEffect, useRef, useState } from "react";
 import "./App.css";
+import AlertFeed from "./components/AlertFeed";
+import Chatbot from "./components/Chatbot";
+import Dashboard from "./components/Dashboard";
+import DisasterAlarm from "./components/DisasterAlarm";
+import MapView from "./components/MapView";
 
 const DISASTER_TYPES = [
   { key: "flood",      label: "🌊 Flood"      },
@@ -125,6 +125,7 @@ export default function App() {
         }
       `}</style>
 
+      <div style={{ position:"sticky", top:0, zIndex:1000 }}>
       <header className="header">
         <div className="header-left">
           {/* Logo icon color matches current disaster */}
@@ -170,14 +171,14 @@ export default function App() {
 
       {/* ── Disaster Type Selector ── */}
       <div style={{
-        display      : "flex",
-        gap          : 10,
-        padding      : "12px 24px",
-        background   : "#0d1321",
-        borderBottom : `1px solid ${accentColor}30`,
-        overflowX    : "auto",
-        transition   : "border-color 0.4s ease",
-      }}>
+          display      : "flex",
+          gap          : 10,
+          padding      : "12px 24px",
+          background   : "#0d1321",
+          borderBottom : `1px solid ${accentColor}30`,
+          overflowX    : "auto",
+          transition   : "border-color 0.4s ease",
+        }}>
         <span style={{ color: "#7a9bbf", fontSize: 13, alignSelf: "center", whiteSpace: "nowrap" }}>
           Disaster Type:
         </span>
@@ -209,10 +210,10 @@ export default function App() {
           );
         })}
       </div>
-
-      <main className="main">
-        {/* Alert always visible, animates on disaster change */}
-        <AnimatedPane id={`alarm-${disasterType}`}>
+    </div>
+    <main className="main">
+      {/* Alert always visible, animates on disaster change */}
+      <AnimatedPane id={`alarm-${disasterType}`}>
           <DisasterAlarm disasterType={disasterType} />
         </AnimatedPane>
 

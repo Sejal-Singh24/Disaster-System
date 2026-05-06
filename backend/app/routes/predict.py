@@ -17,7 +17,7 @@ WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 # ── Paths ─────────────────────────────────────────────────
 BASE_DIR   = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(BASE_DIR, "../models/model.pkl")
-DATA_PATH  = r"C:\Users\user\Desktop\Disaster-System\data\disasters_clean.csv"
+DATA_PATH = r"D:\Disaster\data\disasters_clean.csv"
 
 # ── Load ML Model ─────────────────────────────────────────
 def load_model():
@@ -25,7 +25,7 @@ def load_model():
         with open(MODEL_PATH, "rb") as f:
             return pickle.load(f)
     except FileNotFoundError:
-        print("⚠️ model.pkl nahi mila — rule-based fallback use hoga!")
+        print("⚠️ model.pkl not found — rule-based fallback will be used!")
         return None
 
 model = load_model()
@@ -38,7 +38,7 @@ def load_emdat():
         print(f"✅ EMDAT data loaded: {len(india_df)} India records")
         return india_df
     except Exception as e:
-        print(f"⚠️ EMDAT data load nahi hua: {e}")
+        print(f"⚠️ EMDAT data could not be loaded: {e}")
         return None
 
 emdat_df = load_emdat()
@@ -128,7 +128,7 @@ def build_historical_message(disaster_type: str) -> str:
     ctx        = get_historical_context(disaster_type)
     emdat_type = EMDAT_TYPE_MAP.get(disaster_type.lower(), "Flood")
     if ctx["total_events"] == 0:
-        return "Historical data available nahi hai."
+        return "Historical data is not available."
     msg = (
         f"📊 India EMDAT Historical Data ({emdat_type}):\n"
         f"   • Total events (1900-2021): {ctx['total_events']}\n"
@@ -250,19 +250,19 @@ def estimate_people_at_risk(severity_score: float, population: int) -> int:
 # ── Recommendations ───────────────────────────────────────
 def get_recommendations(severity_label: str, disaster_type: str) -> list[str]:
     base = {
-        "Critical": ["Turant evacuation order jaari karo", "NDRF teams deploy karo", "Emergency helpline (1078) activate karo", "Relief camps setup karo", "Medical teams standby pe rakho"],
-        "High"    : ["Evacuation advisory jaari karo", "Rescue teams alert karo", "Local administration ko inform karo", "Logon ko safe zones batao"],
-        "Medium"  : ["Situation monitor karo", "Logon ko alert karo via SMS", "Resources pre-position karo"],
-        "Low"     : ["Routine monitoring karo", "Weather updates follow karo"],
+        "Critical": ["Issue an immediate evacuation order.", "Deploy NDRF teams.", "Activate the emergency helpline (1078).", "Setup relief camps.", "Position medical teams on standby."],
+        "High"    : ["Issue evacuation advisory.", "Alert rescue teams.", "Inform local administration.", "Notify residents about safe zones via SMS."],
+        "Medium"  : ["Monitor the situation.", "Alert residents via SMS.", "Pre-position resources."],
+        "Low"     : ["Conduct routine monitoring.", "Follow weather updates."],
     }
     specific = {
-        "flood"      : ["River levels monitor karo", "Low-lying areas khali karwao"],
-        "earthquake" : ["Buildings inspect karo", "Aftershocks ke liye taiyaar raho"],
-        "cyclone"    : ["Coastal areas evacuate karo", "Ships ko port pe rokho"],
-        "drought"    : ["Pani ki rationing karo", "Farmers ko support do"],
-        "landslide"  : ["Pahadi roads band karo", "Slopes monitor karo"],
-        "wildfire"   : ["Forest areas evacuate karo", "Fire brigades deploy karo"],
-        "tsunami"    : ["Oonchi jagah par jao", "Coastal areas band karo"],
+        "flood"      : ["Monitor river levels.", "Evacuate low-lying areas."],
+        "earthquake" : ["Inspect buildings.", "Be prepared for aftershocks."],
+        "cyclone"    : ["Evacuate coastal areas.", "Hold ships at the port."],
+        "drought"    : ["Implement water rationing.", "Provide support to farmers."],
+        "landslide"  : ["Close hill roads.", "Monitor slopes."],
+        "wildfire"   : ["Evacuate forest areas.", "Deploy fire brigades."],
+        "tsunami"    : ["Move to higher ground.", "Band coastal areas."],
     }
     recs  = base.get(severity_label, base["Low"]).copy()
     recs += specific.get(disaster_type.lower(), [])

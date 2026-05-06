@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
 import axios from "axios";
+import { useEffect, useRef, useState } from "react";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000/api";
 
@@ -47,7 +47,7 @@ const AUTO_SUGGESTIONS = [
   "2013 Uttarakhand flood",
   "Kerala 2018 flood",
   "Bihar flood history",
-  "India ka sabse bura flood",
+  "India’s worst flood.",
   "2001 Bhuj earthquake",
   "2004 tsunami India",
   "Assam flood history",

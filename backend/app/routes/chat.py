@@ -24,7 +24,7 @@ def load_model():
         with open(MODEL_PATH, "rb") as f:
             return pickle.load(f)
     except Exception:
-        print("⚠️ model.pkl nahi mila — rule-based fallback use hoga!")
+        print("⚠️ model.pkl not found — rule-based fallback will be used!")
         return None
 
 model = load_model()
@@ -603,19 +603,19 @@ def get_people(score, population):
 
 def get_recs(label, dtype):
     base = {
-        "Critical": ["Turant evacuation order jaari karo", "NDRF teams deploy karo", "Emergency helpline (1078) activate karo", "Relief camps setup karo"],
-        "High"    : ["Evacuation advisory jaari karo", "Rescue teams alert karo", "Local administration inform karo", "Safe zones identify karo"],
-        "Medium"  : ["Situation monitor karo", "SMS alerts bhejo", "Resources pre-position karo"],
-        "Low"     : ["Routine monitoring karo", "Weather updates follow karo"],
+        "Critical": ["Issue an immediate evacuation order.", "Deploy NDRF teams.", "Activate emergency helpline (1078).", "Set up relief camps."],
+        "High"    : ["Issue evacuation advisory.", "Alert rescue teams.", "Inform local administration.", "Identify safe zones."],
+        "Medium"  : ["Monitor the situation.", "Send SMS alerts.", "Pre-position resources."],
+        "Low"     : ["Conduct routine monitoring.", "Follow weather updates."],
     }
     specific = {
-        "flood"      : ["River levels monitor karo", "Low-lying areas khali karwao"],
-        "earthquake" : ["Buildings inspect karo", "Aftershocks ke liye taiyaar raho"],
-        "cyclone"    : ["Coastal areas evacuate karo", "Ships port pe rokho"],
-        "drought"    : ["Pani ki rationing karo", "Farmers ko support do"],
-        "landslide"  : ["Pahadi roads band karo", "Slopes monitor karo"],
-        "wildfire"   : ["Forest areas evacuate karo", "Fire brigades deploy karo"],
-        "tsunami"    : ["Oonchi jagah par jao", "Coastal areas band karo"],
+        "flood"      : ["Monitor river levels.", "Low-lying areas khali karwao"],
+        "earthquake" : ["Inspect buildings.", "Be prepared for aftershocks."],
+        "cyclone"    : ["Evacuate coastal areas.", "Hold ships at the port."],
+        "drought"    : ["Implement water rationing.", "Provide support to farmers."],
+        "landslide"  : ["Close hill roads.", "Monitor slopes."],
+        "wildfire"   : ["Evacuate forest areas.", "Deploy fire brigades."],
+        "tsunami"    : ["Move to higher ground.", "Band coastal areas."],
     }
     recs  = base.get(label, base["Low"]).copy()
     recs += specific.get(dtype.lower(), [])
@@ -725,36 +725,36 @@ async def chat_endpoint(chat_data: ChatInput):
         return {"response": await predict("flood", extract_city(t))}
 
     if "uttarakhand" in t and "2013" in t:
-        return {"response": "📅 2013 Uttarakhand Flash Flood:\n• 6,054 deaths recorded\n• Lakho log homeless hue\n• Kedarnath sabse zyada affected tha\n• India ka worst flood disaster tha"}
+        return {"response": "📅 2013 Uttarakhand Flash Flood:\n• 6,054 deaths recorded\n• Lakhs of people became homeless.\n• Kedarnath was the most affected.\n• It was India’s worst flood disaster."}
 
     if "kerala" in t and "2018" in t:
-        return {"response": "📅 2018 Kerala Floods:\n• 504 deaths\n• 5.4 million log affected\n• 100 saal ka sabse bada flood\n• 14 districts affected the"}
+        return {"response": "📅 2018 Kerala Floods:\n• 504 deaths\n• 5.4 million people affected\n• 100 years' worst flood\n• 14 districts affected"}
 
     if "bihar" in t and "flood" in t:
-        return {"response": "🌊 Bihar Floods History:\n• 1900-2021 mein 50+ flood events\n• Kosi river ko 'Bihar ka Shok' kehte hain\n• Sabse affected: Darbhanga, Muzaffarpur, Sitamarhi"}
+        return {"response": "🌊 Bihar Floods History:\n• There were 50+ flood events between 1900 and 2021.\n• The Kosi River is called the Sorrow of Bihar.\n• Most affected areas: Darbhanga, Muzaffarpur, Sitamarhi."}
 
     if "worst" in t or "sabse bura" in t:
-        return {"response": "😮 India ka Sabse Bura Flood:\n• 1987 mein aaya tha\n• 1,399 deaths\n• 40 million log affected"}
+        return {"response": "😮 India’s Worst Flood:\n• 1987\n• 1,399 deaths\n• 40 million people affected"}
 
     if "assam" in t and "flood" in t:
-        return {"response": "🌊 Assam Floods:\n• India ka sabse flood-prone state\n• Brahmaputra river ki wajah se har saal flooding\n• 2022 mein 32 lakh log affected"}
+        return {"response": "🌊 Assam Floods:\n• India’s most flood-prone state\n• Caused by the Brahmaputra river\n• 32 lakh people affected in 2022"}
 
     if "odisha" in t or ("cyclone" in t and "history" in t):
-        return {"response": "🌀 Odisha Cyclones:\n• 1999 Super Cyclone: 10,000+ deaths\n• 2013 Phailin: 45 deaths\n• Ab early warning system strong hai"}
+        return {"response": "🌀 Odisha Cyclones:\n• 1999 Super Cyclone: 10,000+ deaths\n• 2013 Phailin: 45 deaths\n• Now the early warning system is strong."}
 
     if "bhuj" in t or ("earthquake" in t and "2001" in t):
-        return {"response": "🏔️ 2001 Bhuj Earthquake:\n• Richter scale: 7.7\n• 20,000+ deaths\n• India ka deadliest earthquake"}
+        return {"response": "🏔️ 2001 Bhuj Earthquake:\n• Richter scale: 7.7\n• 20,000+ deaths\n• It was India’s deadliest earthquake."}
 
     if "2004" in t and "tsunami" in t:
-        return {"response": "🌊 2004 Indian Ocean Tsunami:\n• 10,000+ deaths in India\n• Tamil Nadu, Andhra Pradesh, Kerala affected\n• 9.1 magnitude earthquake se aaya tha"}
+        return {"response": "🌊 2004 Indian Ocean Tsunami:\n• 10,000+ deaths in India\n• Tamil Nadu, Andhra Pradesh, Kerala affected\n• It was caused by a magnitude 9.1 earthquake."}
 
     if "kedarnath" in t:
-        return {"response": "⛰️ 2013 Kedarnath Disaster:\n• Flash flood + landslide combo\n• 5,000+ deaths\n• India ka worst multi-disaster event"}
+        return {"response": "⛰️ 2013 Kedarnath Disaster:\n• Flash flood + landslide combo\n• 5,000+ deaths\n• It was India’s worst multi-disaster event."}
 
     return {
         "response": (
-            "🙏 Main DisasterGuard AI hoon!\n\n"
-            "Mujhse poochh sakte ho:\n\n"
+            "🙏 I am DisasterGuard AI!\n\n"
+            "You can ask me:\n\n"
             "🌤️ Weather:    'Dehradun weather'\n"
             "🌊 Flood:      'Moradabad flood risk'\n"
             "🏔️ Earthquake: 'Delhi earthquake risk'\n"
@@ -764,6 +764,6 @@ async def chat_endpoint(chat_data: ChatInput):
             "🔥 Wildfire:   'Nainital wildfire risk'\n"
             "🌊 Tsunami:    'Chennai tsunami risk'\n"
             "📊 History:    '2013 Uttarakhand flood'\n"
-            "😮 Worst:      'India ka sabse bura flood'"
+            "😮 Worst:      'India’s worst flood'"
         )
     }

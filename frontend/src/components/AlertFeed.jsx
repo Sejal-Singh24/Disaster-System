@@ -148,7 +148,7 @@ const INITIAL_ALERTS = [
   },
 ];
 
-// Har type ka color
+// Color for each type.
 const TYPE_COLORS = {
   "RIVERINE":    "#00d4ff",
   "FLASH FLOOD": "#ff3b5c",
@@ -159,7 +159,7 @@ export default function AlertFeed() {
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
 
-  // Filter aur search dono ek saath apply karo
+  // Apply both filter and search together.
   const filtered = INITIAL_ALERTS.filter((a) => {
     const matchSev = filter === "all" || a.severity === filter;
     const matchSearch =
@@ -213,7 +213,7 @@ export default function AlertFeed() {
 
           {/* Search box */}
           <input
-            placeholder="Year, state ya event search karo..."
+            placeholder="Search by year, state, or event..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -316,7 +316,7 @@ export default function AlertFeed() {
             </div>
           ))}
 
-          {/* Koi result nahi mila */}
+          {/*No result found. */}
           {filtered.length === 0 && (
             <div style={{
               textAlign: "center",
@@ -324,7 +324,7 @@ export default function AlertFeed() {
               color: "#7a9bbf",
               fontFamily: "monospace",
             }}>
-              Koi event nahi mila. Filter change karo.
+              No events found. Try changing the filter.
             </div>
           )}
         </div>
