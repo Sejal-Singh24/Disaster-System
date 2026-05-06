@@ -1,14 +1,6 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 
-const MOCK_ALERTS = [
-  { id: "a1", district: "Moradabad", state: "Uttar Pradesh", alert_level: "Critical", alert_color: "#E24B4A", message: "Moradabad mein critical flood risk — rainfall 138mm, wind 85km/h", temperature: 36.2, humidity: 91, rainfall_mm: 138, wind_kmh: 85, predicted_for: "Agli 6 ghante", disaster_type: "Flash Flood" },
-  { id: "a2", district: "Bareilly", state: "Uttar Pradesh", alert_level: "High", alert_color: "#EF9F27", message: "Bareilly mein high flood risk — rainfall 72mm, wind 55km/h", temperature: 34.8, humidity: 85, rainfall_mm: 72, wind_kmh: 55, predicted_for: "Agli 12 ghante", disaster_type: "Riverine Flood" },
-  { id: "a3", district: "Rampur", state: "Uttar Pradesh", alert_level: "High", alert_color: "#EF9F27", message: "Rampur mein high risk — rainfall 68mm, wind 48km/h", temperature: 35.5, humidity: 88, rainfall_mm: 68, wind_kmh: 48, predicted_for: "Agli 18 ghante", disaster_type: "Riverine Flood" },
-  { id: "a4", district: "Lucknow", state: "Uttar Pradesh", alert_level: "Medium", alert_color: "#185FA5", message: "Lucknow mein medium risk — rainfall 28mm, wind 32km/h", temperature: 33.1, humidity: 78, rainfall_mm: 28, wind_kmh: 32, predicted_for: "Agli 24 ghante", disaster_type: "Urban Flood" },
-  { id: "a5", district: "Agra", state: "Uttar Pradesh", alert_level: "Low", alert_color: "#639922", message: "Agra mein low risk — conditions normal hain", temperature: 31.4, humidity: 65, rainfall_mm: 8, wind_kmh: 18, predicted_for: "Agli 48 ghante", disaster_type: "None" },
-];
-
 const LEVEL_ORDER = { Critical: 4, High: 3, Medium: 2, Low: 1 };
 
 function requestNotifPermission() {
@@ -70,7 +62,7 @@ export default function DisasterAlarm() {
       if (resp.ok) data = await resp.json();
       else throw new Error();
     } catch {
-      data = MOCK_ALERTS.map(a => ({ ...a, timestamp: new Date().toISOString() }));
+      data = [];
     }
 
     data.forEach(alert => {
