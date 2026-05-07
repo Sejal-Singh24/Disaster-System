@@ -1,3 +1,4 @@
+import MLEvaluation from "./pages/MLEvaluation";
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import AlertFeed from "./components/AlertFeed";
@@ -145,7 +146,7 @@ export default function App() {
         </div>
 
         <nav className="nav">
-          {["map", "dashboard", "alerts", "chatbot"].map((tab) => (
+          {["map", "dashboard", "alerts", "chatbot", "ml"].map((tab) => (
             <button
               key={tab}
               className={`nav-btn nav-btn-enhanced ${activeTab === tab ? "active" : ""}`}
@@ -159,6 +160,7 @@ export default function App() {
               {tab === "dashboard" && "📊 Dashboard"}
               {tab === "alerts"    && "🔔 EMDAT Events"}
               {tab === "chatbot"   && "🤖 AI Assistant"}
+              {tab === "ml"        && "📈 ML Evaluation"}
             </button>
           ))}
         </nav>
@@ -243,6 +245,11 @@ export default function App() {
             <AnimatedPane id={`chatbot-${disasterType}`}>
               <Chatbot disasterType={disasterType} />
             </AnimatedPane>
+          )}
+          {activeTab === "ml" && (
+            <AnimatedPane id="ml-evaluation">
+             <MLEvaluation />
+             </AnimatedPane>
           )}
         </div>
       </main>
