@@ -5,11 +5,18 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // All requests to /gdacs-api will be forwarded to GDACS servers
+      // GDACS — Live global disaster data
       '/gdacs-api': {
         target: 'https://www.gdacs.org',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/gdacs-api/, '/gdacsapi'),
+        secure: true,
+      },
+      // OpenWeather — India state-level live weather & alerts
+      '/openweather-api': {
+        target: 'https://api.openweathermap.org',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/openweather-api/, ''),
         secure: true,
       },
     },
