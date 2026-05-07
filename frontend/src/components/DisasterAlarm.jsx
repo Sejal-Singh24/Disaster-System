@@ -66,7 +66,7 @@ export default function DisasterAlarm() {
     }
 
     data.forEach(alert => {
-      if (alert.alert_level === "Critical" || alert.alert_level === "High") {
+      if (alert.alert_level === "Critical" || alert.alert_level === "High" || alert.alert_level === "Medium") {
         if (!seenIds.current.has(alert.id)) {
           seenIds.current.add(alert.id);
           if (!mutedRef.current) {
@@ -131,6 +131,9 @@ export default function DisasterAlarm() {
             {muted ? "🔇" : "🔔"}
           </button>
           <button onClick={() => { if (!mutedRef.current) playAlarm("Critical", mutedRef, alarmTimers); }} style={btnStyle("#1a0a2a", "#cc88ff")}>🔊 Test</button>
+          <button onClick={() => { if (!mutedRef.current) playAlarm("Critical", mutedRef, alarmTimers); }} style={btnStyle("#3a0a0a", "#ff6b6b")}>🔴 Critical</button>
+          <button onClick={() => { if (!mutedRef.current) playAlarm("High", mutedRef, alarmTimers); }} style={btnStyle("#2a1800", "#ffb347")}>🟠 High</button>
+          <button onClick={() => { if (!mutedRef.current) playAlarm("Medium", mutedRef, alarmTimers); }} style={btnStyle("#0a1a2a", "#7ab3ff")}>🔵 Medium</button>
         </div>
         <span style={{ color: "#7a9bbf", fontSize: 12 }}>{expanded ? "▲" : "▼"}</span>
       </div>
