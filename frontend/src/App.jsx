@@ -71,6 +71,7 @@ function AnimatedPane({ id, children }) {
 export default function App() {
   const [activeTab,    setActiveTab]    = useState("dashboard");
   const [disasterType, setDisasterType] = useState("flood");
+  const [mapFilter, setMapFilter] = useState({ mode: "global", country: "all", state: "all" });
   const [prevDisaster, setPrevDisaster] = useState("flood");
   const [tabChanging,  setTabChanging]  = useState(false);
 
@@ -87,6 +88,10 @@ export default function App() {
   const handleTabChange = (tab) => {
     if (tab === activeTab) return;
     setTabChanging(true);
+    // Map ke alawa baaki tabs pe India ka data dikhao
+    if (tab !== "map") {
+      setMapFilter({ mode: "country", country: "India", state: "all" });
+    }
     setTimeout(() => {
       setActiveTab(tab);
       setTabChanging(false);
@@ -215,10 +220,7 @@ export default function App() {
     </div>
     <main className="main">
       {/* Alert always visible, animates on disaster change */}
-      <AnimatedPane id={`alarm-${disasterType}`}>
-          <DisasterAlarm disasterType={disasterType} />
-        </AnimatedPane>
-
+      <DisasterAlarm disasterType={disasterType} mapFilter={mapFilter} />
         {/* Tab content fades on tab switch */}
         <div style={{
           opacity:   tabChanging ? 0 : 1,
@@ -233,7 +235,7 @@ export default function App() {
           )}
           {activeTab === "map" && (
             <AnimatedPane id={`map-${disasterType}`}>
-              <MapView disasterType={disasterType} />
+              <MapView disasterType={disasterType} onFilterChange={setMapFilter} />
             </AnimatedPane>
           )}
           {activeTab === "alerts" && (

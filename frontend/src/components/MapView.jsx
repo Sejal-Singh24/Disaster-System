@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback, useRef } from "react";
-import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 
 // ── APIs ──────────────────────────────────────────────────
 const GDACS_API       = "/gdacs-api/api/events/geteventlist/SEARCH";
@@ -238,7 +238,7 @@ function StatBox({ value, label, color }) {
 }
 
 // ── Main Component ────────────────────────────────────────
-export default function MapView({ disasterType = "flood" }) {
+export default function MapView({ disasterType = "flood", onFilterChange }) {
 
   const [viewMode,        setViewMode]        = useState("global");
   const [selectedCountry, setSelectedCountry] = useState("IND");
@@ -253,14 +253,29 @@ export default function MapView({ disasterType = "flood" }) {
   const [lastUpdated,     setLastUpdated]      = useState(null);
 
   const typeInfo = DISASTER_TYPE_MAP[disasterType] || DISASTER_TYPE_MAP.flood;
+  useEffect(() => {
+  if (!onFilterChange) return;
+  if (viewMode === "global") {
+    onFilterChange({ mode: "global", country: "all", state: "all" });
+  } else if (viewMode === "country") {
+    const c = COUNTRIES.find(c => c.iso === selectedCountry);
+    onFilterChange({ mode: "country", country: c?.name || "all", state: "all" });
+  } else if (viewMode === "state") {
+    onFilterChange({ mode: "state", country: "India", state: selectedState });
+  }
+}, [viewMode, selectedCountry, selectedState, onFilterChange]);
 
   // ── Fetch GDACS ───────────────────────────────────────
-  const fetchEvents = useCallback(async (type) => {
+  const fetchEvents = useCallback(async (type, country = "") => {
     setLoading(true); setError(null);
     try {
       const info   = DISASTER_TYPE_MAP[type] || DISASTER_TYPE_MAP.flood;
       const params = new URLSearchParams({ eventlist: info.code, alertlevel: "Green,Orange,Red", limit: 500 });
-      const res    = await fetch(`${GDACS_API}?${params}`);
+      
+      // ✅ Country filter add karo
+      if (country && country !== "global") params.append("country", country);
+      
+      const res = await fetch(`${GDACS_API}?${params}`);
       if (!res.ok) throw new Error(`GDACS API ${res.status}`);
       const json   = await res.json();
 
@@ -331,11 +346,11 @@ export default function MapView({ disasterType = "flood" }) {
 
   // ── Initial + auto refresh ────────────────────────────
   useEffect(() => {
-    fetchEvents(disasterType);
-    const iv = setInterval(() => fetchEvents(disasterType), 5 * 60 * 1000);
+    fetchEvents(disasterType, viewMode === "country" ? selectedCountry : "");
+    const iv = setInterval(() => fetchEvents(disasterType, viewMode === "country" ? selectedCountry : ""), 5 * 60 * 1000);
     return () => clearInterval(iv);
-  }, [disasterType, fetchEvents]);
-
+  }, [disasterType, fetchEvents, viewMode, selectedCountry]);
+  
   // ── Fetch OW when state view active or state changes ──
   useEffect(() => {
     if (viewMode === "state") {

@@ -265,3 +265,59 @@ async def get_alerts():
     level_order = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}
     all_alerts.sort(key=lambda x: level_order.get(x["alert_level"], 0), reverse=True)
     return all_alerts
+# ── Global/Country GDACS Alerts Endpoint ──────────────────
+@router.get("/global")
+async def get_global_alerts(country: str = ""):
+    gdacs_alerts = []
+    try:
+        params = {
+            "eventlist":  "FL,TC,EQ,DR,WF",
+            "limitItems": 50,
+        }
+        if country:
+            params["country"] = country
+
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.get(GDACS_URL, params=params)
+            data = resp.json()
+            features = data.get("features", [])
+
+            for i, feature in enumerate(features):
+                props  = feature.get("properties", {})
+                coords = feature.get("geometry", {}).get("coordinates", [0, 0])
+                alertlevel = props.get("alertlevel", "Green")
+                alert_level, alert_color = gdacs_alert_to_level(alertlevel)
+                eventtype    = props.get("eventtype", "FL")
+                disaster     = gdacs_event_type(eventtype)
+                fromdate     = props.get("fromdate", "")[:10]
+                todate       = props.get("todate", "")[:10]
+                severity     = props.get("severitydata", {}).get("severitytext", "")
+                country_name = props.get("country", "Global")
+
+                gdacs_alerts.append({
+                    "id":            f"global_{i+1}",
+                    "district":      country_name,
+                    "state":         "Global (GDACS)",
+                    "lat":           coords[1],
+                    "lon":           coords[0],
+                    "alert_level":   alert_level,
+                    "alert_color":   alert_color,
+                    "message":       f"{disaster} — {props.get('description', '')}. {severity}",
+                    "temperature":   0,
+                    "humidity":      0,
+                    "rainfall_mm":   0,
+                    "wind_kmh":      0,
+                    "disaster_type": disaster,
+                    "predicted_for": f"GDACS | {fromdate} to {todate}",
+                    "timestamp":     props.get("datemodified", ""),
+                    "source":        "GDACS",
+                    "country":       country_name,
+                })
+
+        print(f"✅ Global GDACS: {len(gdacs_alerts)} alerts")
+    except Exception as e:
+        print(f"⚠️ Global GDACS failed: {e}")
+
+    level_order = {"Critical": 4, "High": 3, "Medium": 2, "Low": 1}
+    gdacs_alerts.sort(key=lambda x: level_order.get(x["alert_level"], 0), reverse=True)
+    return gdacs_alerts
