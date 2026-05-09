@@ -1,4 +1,3 @@
-import MLEvaluation from "./pages/MLEvaluation";
 import { useEffect, useRef, useState } from "react";
 import "./App.css";
 import AlertFeed from "./components/AlertFeed";
@@ -6,6 +5,7 @@ import Chatbot from "./components/Chatbot";
 import Dashboard from "./components/Dashboard";
 import DisasterAlarm from "./components/DisasterAlarm";
 import MapView from "./components/MapView";
+import MLEvaluation from "./pages/MLEvaluation";
 
 const DISASTER_TYPES = [
   { key: "flood",      label: "🌊 Flood"      },
@@ -71,7 +71,7 @@ function AnimatedPane({ id, children }) {
 export default function App() {
   const [activeTab,    setActiveTab]    = useState("dashboard");
   const [disasterType, setDisasterType] = useState("flood");
-  const [mapFilter, setMapFilter] = useState({ mode: "global", country: "all", state: "all" });
+  const [mapFilter, setMapFilter] = useState({ mode: "country", country: "India", state: "all" });
   const [prevDisaster, setPrevDisaster] = useState("flood");
   const [tabChanging,  setTabChanging]  = useState(false);
 
@@ -88,7 +88,7 @@ export default function App() {
   const handleTabChange = (tab) => {
     if (tab === activeTab) return;
     setTabChanging(true);
-    // Map ke alawa baaki tabs pe India ka data dikhao
+    
     if (tab !== "map") {
       setMapFilter({ mode: "country", country: "India", state: "all" });
     }

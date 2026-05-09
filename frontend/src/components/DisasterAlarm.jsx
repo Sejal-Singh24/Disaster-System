@@ -51,8 +51,16 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
   const seenIds = useRef(new Set());
   const mutedRef = useRef(false);
   const alarmTimers = useRef([]);
+  const [toasts, setToasts] = useState([]);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
-
+  
+  useEffect(() => {
+    if (toasts.length === 0) return;
+    const timer = setTimeout(() => {
+      setToasts(prev => prev.slice(1));
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [toasts]);
   const fetchAlerts = useCallback(async () => {
     setLoading(true);
     let data = [];
@@ -93,10 +101,26 @@ if (mapFilter.mode === "global") {
       data = [];
     }
 
-    data.forEach(alert => {
+  data.forEach(alert => {
       if (alert.alert_level === "Critical" || alert.alert_level === "High" || alert.alert_level === "Medium") {
         if (!seenIds.current.has(alert.id)) {
           seenIds.current.add(alert.id);
+          const isIndiaAlert = alert.source === "OpenWeatherMap";
+          const isGlobalAlert = alert.source === "GDACS";
+          const showToast = 
+            (mapFilter.mode === "country" && mapFilter.country === "India" && isIndiaAlert) ||
+            (mapFilter.mode === "global" && isGlobalAlert) ||
+            (mapFilter.mode === "country" && mapFilter.country !== "India" && isGlobalAlert) ||
+            (mapFilter.mode === "state" && isIndiaAlert);
+          if (showToast) setToasts(prev => [...prev, {
+            id: alert.id,
+            district: alert.district,
+            state: alert.state,
+            level: alert.alert_level,
+            color: alert.alert_color,
+            disaster_type: alert.disaster_type,
+            message: alert.message,
+          }]);
           if (!mutedRef.current) {
             playAlarm(alert.alert_level, mutedRef, alarmTimers);
             sendBrowserNotif(alert);
@@ -111,14 +135,17 @@ if (mapFilter.mode === "global") {
     setLoading(false);
   }, [mapFilter]);
   useEffect(() => {
+    seenIds.current = new Set();
+    setToasts([]);
+  }, [mapFilter]);
+  useEffect(() => {
     requestNotifPermission();
     fetchAlerts();
     const timer = setInterval(fetchAlerts, 30000);
     return () => clearInterval(timer);
   }, [mapFilter, disasterType]);
 
-  // ── Map filter apply karo ─────────────────────────────
-  // Disaster type match karo
+  
 const disasterTypeMatch = {
   flood: ["Flood", "Flash Flood", "Riverine Flood", "Urban Flood"],
   earthquake: ["Earthquake"],
@@ -138,7 +165,7 @@ const visibleAlerts = alerts.filter(a => {
       if (!allowedTypes.some(t => a.disaster_type.toLowerCase().includes(t.toLowerCase()))) return false;
     }
   
-    // State filter — sirf selected state ke alerts
+    // State filter 
     if (mapFilter.mode === "state" && mapFilter.state !== "all") {
       if (a.source === "GDACS") return true; // GDACS hamesha dikho
       if (a.state !== mapFilter.state) return false;
@@ -163,7 +190,43 @@ const visibleAlerts = alerts.filter(a => {
     :  "🌍 Showing alerts for: Global";
   return (
     <div style={{ position: "sticky", top: 0, zIndex: 999, background: bannerBg, border: `1px solid ${bannerBorder}`, borderRadius: expanded ? "12px 12px 0 0" : 12, marginBottom: expanded ? 0 : 16, overflow: "hidden", boxShadow: hasCritical ? `0 0 20px ${bannerBorder}40` : "none", transition: "all 0.3s" }}>
-
+      
+      {/* Toast Notifications */}
+<div style={{ position: "fixed", top: 140, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10 }}>
+  {toasts.map(toast => (
+    <div key={toast.id} style={{
+      background: `linear-gradient(135deg, ${toast.color}22, #0d1520)`,
+      border: `1px solid ${toast.color}`,
+      borderLeft: `5px solid ${toast.color}`,
+      borderRadius: 12, padding: "14px 18px",
+      minWidth: 320, maxWidth: 400,
+      boxShadow: `0 8px 32px ${toast.color}40`,
+      animation: "slideIn 0.4s ease",
+      fontFamily: "monospace",
+    }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+        <div>
+          <div style={{ fontSize: 13, fontWeight: 800, color: toast.color, marginBottom: 4 }}>
+            🚨 {toast.level.toUpperCase()} ALERT
+          </div>
+          <div style={{ fontSize: 12, color: "#e8f4fd", fontWeight: 700 }}>
+           📍 {toast.district}, {toast.state}
+          </div>
+          {toast.disaster_type !== "None" && (
+            <div style={{ fontSize: 11, color: "#00d4ff", marginTop: 4 }}>
+              🌊 {toast.disaster_type}
+            </div>
+         )}
+          <div style={{ fontSize: 11, color: "#7a9bbf", marginTop: 6, lineHeight: 1.5 }}>
+           {toast.message}
+          </div>
+        </div>
+        <button onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+          style={{ background: "transparent", border: "none", color: "#7a9bbf", cursor: "pointer", fontSize: 16, marginLeft: 10 }}>✕</button>
+      </div>
+    </div>
+  ))}
+</div>
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer" }} onClick={() => setExpanded(e => !e)}>
         <span style={{ fontSize: 22, animation: hasCritical ? "pulse-anim 1s infinite" : "none" }}>
           {hasCritical ? "🚨" : urgentCount > 0 ? "⚠️" : "✅"}
@@ -251,7 +314,10 @@ const visibleAlerts = alerts.filter(a => {
           </div>
         </div>
       )}
-      <style>{`@keyframes pulse-anim { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.2);opacity:0.8} }`}</style>
+      <style>{`
+        @keyframes pulse-anim { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.2);opacity:0.8} }
+        @keyframes slideIn { from { opacity:0; transform:translateX(100px); } to { opacity:1; transform:translateX(0); } }
+      `}</style>
     </div>
   );
 }

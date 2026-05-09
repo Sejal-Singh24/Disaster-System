@@ -6,7 +6,7 @@ import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-le
 // ── APIs ──────────────────────────────────────────────────
 const GDACS_API       = "/gdacs-api/api/events/geteventlist/SEARCH";
 const OPENWEATHER_API = "/openweather-api/data/2.5/weather";
-const OW_KEY          = import.meta.env.VITE_WEATHER_API_KEY || "a9eaa4da7156df5b1a35203680d4359b";
+const OW_KEY = import.meta.env.VITE_WEATHER_API_KEY || "";
 
 const DISASTER_TYPE_MAP = {
   flood:      { code: "FL", label: "Flood",          color: "#00d4ff", icon: "🌊" },
