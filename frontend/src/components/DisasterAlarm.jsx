@@ -53,7 +53,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
   const alarmTimers = useRef([]);
   const [toasts, setToasts] = useState([]);
   useEffect(() => { mutedRef.current = muted; }, [muted]);
-  
+
   useEffect(() => {
     if (toasts.length === 0) return;
     const timer = setTimeout(() => {
@@ -61,38 +61,42 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
     }, 5000);
     return () => clearTimeout(timer);
   }, [toasts]);
+
   const fetchAlerts = useCallback(async () => {
+    // ✅ FIX 1: Har fetch se pehle purane timers band karo
+    alarmTimers.current.forEach(t => clearTimeout(t));
+    alarmTimers.current = [];
+
     setLoading(true);
     let data = [];
     try {
-      // mapFilter ke hisaab se URL decide karo
       let url = "http://localhost:8000/api/";
 
-     const eventTypeMap = {
-  flood: "FL", earthquake: "EQ", cyclone: "TC",
-  drought: "DR", wildfire: "WF", landslide: "FL", tsunami: "EQ",
-};
-const eventCode = eventTypeMap[disasterType] || "FL";
+      const eventTypeMap = {
+        flood: "FL", earthquake: "EQ", cyclone: "TC",
+        drought: "DR", wildfire: "WF", landslide: "FL", tsunami: "EQ",
+      };
+      const eventCode = eventTypeMap[disasterType] || "FL";
 
-if (mapFilter.mode === "global") {
-  url = `http://localhost:8000/api/global?eventtype=${eventCode}`;
-} else if (mapFilter.mode === "country" && mapFilter.country !== "all" && mapFilter.country !== "India") {
-  const countryISOMap = {
-    "Afghanistan": "AFG", "Australia": "AUS", "Bangladesh": "BGD",
-    "Brazil": "BRA", "China": "CHN", "Colombia": "COL",
-    "DR Congo": "COD", "Ethiopia": "ETH", "France": "FRA",
-    "Germany": "DEU", "Indonesia": "IDN", "Iran": "IRN",
-    "Italy": "ITA", "Japan": "JPN", "Kenya": "KEN",
-    "Mexico": "MEX", "Myanmar": "MMR", "Nepal": "NPL",
-    "Nigeria": "NGA", "Pakistan": "PAK", "Peru": "PER",
-    "Philippines": "PHL", "Russia": "RUS", "Somalia": "SOM",
-    "South Africa": "ZAF", "Sri Lanka": "LKA", "Sudan": "SDN",
-    "Thailand": "THA", "Turkey": "TUR", "USA": "USA",
-    "Vietnam": "VNM", "Yemen": "YEM",
-  };
-  const iso = countryISOMap[mapFilter.country] || "";
-  url = `http://localhost:8000/api/global?country=${iso}&eventtype=${eventCode}`;
-}
+      if (mapFilter.mode === "global") {
+        url = `http://localhost:8000/api/global?eventtype=${eventCode}`;
+      } else if (mapFilter.mode === "country" && mapFilter.country !== "all" && mapFilter.country !== "India") {
+        const countryISOMap = {
+          "Afghanistan": "AFG", "Australia": "AUS", "Bangladesh": "BGD",
+          "Brazil": "BRA", "China": "CHN", "Colombia": "COL",
+          "DR Congo": "COD", "Ethiopia": "ETH", "France": "FRA",
+          "Germany": "DEU", "Indonesia": "IDN", "Iran": "IRN",
+          "Italy": "ITA", "Japan": "JPN", "Kenya": "KEN",
+          "Mexico": "MEX", "Myanmar": "MMR", "Nepal": "NPL",
+          "Nigeria": "NGA", "Pakistan": "PAK", "Peru": "PER",
+          "Philippines": "PHL", "Russia": "RUS", "Somalia": "SOM",
+          "South Africa": "ZAF", "Sri Lanka": "LKA", "Sudan": "SDN",
+          "Thailand": "THA", "Turkey": "TUR", "USA": "USA",
+          "Vietnam": "VNM", "Yemen": "YEM",
+        };
+        const iso = countryISOMap[mapFilter.country] || "";
+        url = `http://localhost:8000/api/global?country=${iso}&eventtype=${eventCode}`;
+      }
 
       const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });
       if (resp.ok) data = await resp.json();
@@ -101,13 +105,24 @@ if (mapFilter.mode === "global") {
       data = [];
     }
 
-  data.forEach(alert => {
+    // ✅ FIX 2: Agar data empty hai toh sound band karo aur return karo
+    if (data.length === 0) {
+      alarmTimers.current.forEach(t => clearTimeout(t));
+      alarmTimers.current = [];
+      setAlerts([]);
+      setToasts([]); // ✅ Data nahi hai toh toasts bhi hata do
+      setLastChecked(new Date());
+      setLoading(false);
+      return;
+    }
+
+    data.forEach(alert => {
       if (alert.alert_level === "Critical" || alert.alert_level === "High" || alert.alert_level === "Medium") {
         if (!seenIds.current.has(alert.id)) {
           seenIds.current.add(alert.id);
           const isIndiaAlert = alert.source === "OpenWeatherMap";
           const isGlobalAlert = alert.source === "GDACS";
-          const showToast = 
+          const showToast =
             (mapFilter.mode === "country" && mapFilter.country === "India" && isIndiaAlert) ||
             (mapFilter.mode === "global" && isGlobalAlert) ||
             (mapFilter.mode === "country" && mapFilter.country !== "India" && isGlobalAlert) ||
@@ -130,48 +145,63 @@ if (mapFilter.mode === "global") {
     });
 
     data.sort((a, b) => LEVEL_ORDER[b.alert_level] - LEVEL_ORDER[a.alert_level]);
+    // ✅ Jo alerts ab nahi hain unke toasts hata do
+    const newIds = new Set(data.map(a => a.id));
+    setToasts(prev => prev.filter(t => newIds.has(t.id)));
     setAlerts(data);
     setLastChecked(new Date());
     setLoading(false);
-  }, [mapFilter]);
+  }, [mapFilter, disasterType]);
+
   useEffect(() => {
     seenIds.current = new Set();
     setToasts([]);
   }, [mapFilter]);
+
   useEffect(() => {
     requestNotifPermission();
     fetchAlerts();
     const timer = setInterval(fetchAlerts, 30000);
-    return () => clearInterval(timer);
+    return () => {
+      clearInterval(timer);
+      // ✅ FIX 3: Component band hone par bhi timers clear karo
+      alarmTimers.current.forEach(t => clearTimeout(t));
+    };
   }, [mapFilter, disasterType]);
 
-  
-const disasterTypeMatch = {
-  flood: ["Flood", "Flash Flood", "Riverine Flood", "Urban Flood"],
-  earthquake: ["Earthquake"],
-  cyclone: ["Cyclone"],
-  drought: ["Drought"],
-  wildfire: ["Wildfire"],
-  landslide: ["Landslide"],
-  tsunami: ["Tsunami"],
-};
+  const disasterTypeMatch = {
+    flood: ["Flood", "Flash Flood", "Riverine Flood", "Urban Flood"],
+    earthquake: ["Earthquake"],
+    cyclone: ["Cyclone"],
+    drought: ["Drought"],
+    wildfire: ["Wildfire"],
+    landslide: ["Landslide"],
+    tsunami: ["Tsunami"],
+  };
 
-const visibleAlerts = alerts.filter(a => {
+  const visibleAlerts = alerts.filter(a => {
     if (dismissed.has(a.id)) return false;
     if (filterLevel !== "All" && a.alert_level !== filterLevel) return false;
-    // Disaster type filter
-    const allowedTypes = disasterTypeMatch[disasterType] || [];
-    if (a.disaster_type && a.disaster_type !== "None" && allowedTypes.length > 0) {
-      if (!allowedTypes.some(t => a.disaster_type.toLowerCase().includes(t.toLowerCase()))) return false;
+
+    // ✅ FIX: India country mode mein sab OpenWeatherMap alerts hamesha dikhao
+    if (a.source === "OpenWeatherMap" && (
+      mapFilter.mode === "country" && (mapFilter.country === "India" || mapFilter.country === "all")
+    )) return true;
+
+    // GDACS alerts pe disaster type filter lagao
+    if (a.source === "GDACS") {
+      const allowedTypes = disasterTypeMatch[disasterType] || [];
+      if (a.disaster_type && a.disaster_type !== "None" && allowedTypes.length > 0) {
+        if (!allowedTypes.some(t => a.disaster_type.toLowerCase().includes(t.toLowerCase()))) return false;
+      }
     }
-  
-    // State filter 
-    if (mapFilter.mode === "state" && mapFilter.state !== "all") {
-      if (a.source === "GDACS") return true; // GDACS hamesha dikho
+
+    // State filter — sirf specific Indian state ke liye
+    if (mapFilter.mode === "state" && mapFilter.state !== "all" && mapFilter.state !== "India") {
+      if (a.source === "GDACS") return true;
       if (a.state !== mapFilter.state) return false;
     }
 
-    
     return true;
   });
 
@@ -182,51 +212,52 @@ const visibleAlerts = alerts.filter(a => {
   const bannerBorder = hasCritical ? "#E24B4A" : urgentCount > 0 ? "#EF9F27" : "#639922";
   const bannerBg = hasCritical ? "linear-gradient(135deg,#3a0a0a,#1a0505)" : urgentCount > 0 ? "linear-gradient(135deg,#2a1800,#1a0e00)" : "linear-gradient(135deg,#0d1f0d,#081408)";
 
-  // Filter label for info message
   const filterLabel = mapFilter.mode === "state" && mapFilter.state !== "all"
     ? `📍 Showing alerts for: ${mapFilter.state}`
     : mapFilter.mode === "country" && mapFilter.country !== "all"
     ? `🌐 Showing alerts for: ${mapFilter.country}`
-    :  "🌍 Showing alerts for: Global";
+    : "🌍 Showing alerts for: Global";
+
   return (
     <div style={{ position: "sticky", top: 0, zIndex: 999, background: bannerBg, border: `1px solid ${bannerBorder}`, borderRadius: expanded ? "12px 12px 0 0" : 12, marginBottom: expanded ? 0 : 16, overflow: "hidden", boxShadow: hasCritical ? `0 0 20px ${bannerBorder}40` : "none", transition: "all 0.3s" }}>
-      
+
       {/* Toast Notifications */}
-<div style={{ position: "fixed", top: 140, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10 }}>
-  {toasts.map(toast => (
-    <div key={toast.id} style={{
-      background: `linear-gradient(135deg, ${toast.color}22, #0d1520)`,
-      border: `1px solid ${toast.color}`,
-      borderLeft: `5px solid ${toast.color}`,
-      borderRadius: 12, padding: "14px 18px",
-      minWidth: 320, maxWidth: 400,
-      boxShadow: `0 8px 32px ${toast.color}40`,
-      animation: "slideIn 0.4s ease",
-      fontFamily: "monospace",
-    }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <div>
-          <div style={{ fontSize: 13, fontWeight: 800, color: toast.color, marginBottom: 4 }}>
-            🚨 {toast.level.toUpperCase()} ALERT
-          </div>
-          <div style={{ fontSize: 12, color: "#e8f4fd", fontWeight: 700 }}>
-           📍 {toast.district}, {toast.state}
-          </div>
-          {toast.disaster_type !== "None" && (
-            <div style={{ fontSize: 11, color: "#00d4ff", marginTop: 4 }}>
-              🌊 {toast.disaster_type}
+      <div style={{ position: "fixed", top: 140, right: 20, zIndex: 9999, display: "flex", flexDirection: "column", gap: 10 }}>
+        {toasts.map(toast => (
+          <div key={toast.id} style={{
+            background: `linear-gradient(135deg, ${toast.color}22, #0d1520)`,
+            border: `1px solid ${toast.color}`,
+            borderLeft: `5px solid ${toast.color}`,
+            borderRadius: 12, padding: "14px 18px",
+            minWidth: 320, maxWidth: 400,
+            boxShadow: `0 8px 32px ${toast.color}40`,
+            animation: "slideIn 0.4s ease",
+            fontFamily: "monospace",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: toast.color, marginBottom: 4 }}>
+                  🚨 {toast.level.toUpperCase()} ALERT
+                </div>
+                <div style={{ fontSize: 12, color: "#e8f4fd", fontWeight: 700 }}>
+                  📍 {toast.district}, {toast.state}
+                </div>
+                {toast.disaster_type !== "None" && (
+                  <div style={{ fontSize: 11, color: "#00d4ff", marginTop: 4 }}>
+                    🌊 {toast.disaster_type}
+                  </div>
+                )}
+                <div style={{ fontSize: 11, color: "#7a9bbf", marginTop: 6, lineHeight: 1.5 }}>
+                  {toast.message}
+                </div>
+              </div>
+              <button onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+                style={{ background: "transparent", border: "none", color: "#7a9bbf", cursor: "pointer", fontSize: 16, marginLeft: 10 }}>✕</button>
             </div>
-         )}
-          <div style={{ fontSize: 11, color: "#7a9bbf", marginTop: 6, lineHeight: 1.5 }}>
-           {toast.message}
           </div>
-        </div>
-        <button onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
-          style={{ background: "transparent", border: "none", color: "#7a9bbf", cursor: "pointer", fontSize: 16, marginLeft: 10 }}>✕</button>
+        ))}
       </div>
-    </div>
-  ))}
-</div>
+
       <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", cursor: "pointer" }} onClick={() => setExpanded(e => !e)}>
         <span style={{ fontSize: 22, animation: hasCritical ? "pulse-anim 1s infinite" : "none" }}>
           {hasCritical ? "🚨" : urgentCount > 0 ? "⚠️" : "✅"}
@@ -263,12 +294,9 @@ const visibleAlerts = alerts.filter(a => {
       {expanded && (
         <div style={{ borderTop: `1px solid ${bannerBorder}40`, padding: 16, background: "rgba(0,0,0,0.3)" }}>
           <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-
-            {/* Map filter info */}
             <div style={{ background: "rgba(0,212,255,0.08)", border: "1px solid rgba(0,212,255,0.2)", borderRadius: 6, padding: "6px 12px", marginBottom: 10, fontSize: 11, color: "#00d4ff", fontFamily: "monospace", width: "100%" }}>
               ℹ️ {filterLabel} · Live Weather Monitor
             </div>
-
             <span style={{ fontSize: 11, color: "#7a9bbf", fontFamily: "monospace" }}>Filter:</span>
             {["All", "Critical", "High", "Medium", "Low"].map(lvl => (
               <button key={lvl} onClick={() => setFilterLevel(lvl)} style={{ ...btnStyle(filterLevel === lvl ? levelColor(lvl) : "transparent", filterLevel === lvl ? "#fff" : levelColor(lvl)), border: `1px solid ${levelColor(lvl)}`, fontWeight: 700 }}>{lvl}</button>

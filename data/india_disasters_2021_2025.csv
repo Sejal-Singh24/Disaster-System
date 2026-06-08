@@ -1,0 +1,34 @@
+year,disaster_type,disaster_subtype,total_events,total_deaths,total_affected,damage_usd,country
+2021,Glacial lake outburst flood,Glacial lake outburst flood,2,250.0,24.0,210000000.0,India
+2021,Earthquake,Ground movement,1,2.0,3010.0,,India
+2021,Flood,Flash flood,1,37.0,122.0,,India
+2021,Flood,Flood (General),8,1520.0,1324439.0,3200000000.0,India
+2021,Mass movement (wet),Landslide (wet),2,68.0,13.0,,India
+2021,Storm,Tropical cyclone,5,249.0,2506203.0,4400000000.0,India
+2022,Flood,Flood (General),3,2098.0,2101260.0,4200000000.0,India
+2022,Mass movement (wet),Landslide (wet),1,67.0,,,India
+2022,Extreme temperature,Heat wave,1,25.0,,,India
+2022,Storm,Severe weather,1,20.0,95000.0,,India
+2022,Storm,Tropical cyclone,1,,,,India
+2023,Glacial lake outburst flood,Glacial lake outburst flood,1,178.0,88400.0,,India
+2023,Flood,Flash flood,1,62.0,5.0,3000000.0,India
+2023,Flood,Flood (General),4,1562.0,10750000.0,,India
+2023,Mass movement (wet),Landslide (wet),3,64.0,807.0,,India
+2023,Extreme temperature,Heat wave,2,190.0,790.0,,India
+2023,Storm,Lightning/Thunderstorms,1,12.0,1074.0,,India
+2023,Storm,Severe weather,2,40.0,39.0,,India
+2023,Storm,Tropical cyclone,3,27.0,4401000.0,125000000.0,India
+2024,Flood,Flash flood,2,74.0,3800000.0,,India
+2024,Flood,Flood (General),4,211.0,9007193.0,,India
+2024,Mass movement (wet),Landslide (wet),2,388.0,3181.0,140000000.0,India
+2024,Extreme temperature,Heat wave,1,733.0,25000.0,,India
+2024,Storm,Hail,1,1.0,77000.0,,India
+2024,Storm,Severe weather,2,20.0,23007.0,,India
+2024,Storm,Tropical cyclone,3,80.0,5919655.0,73300000.0,India
+2025,Flood,Flash flood,3,271.0,81024.0,,India
+2025,Flood,Flood (General),3,134.0,1843760.0,2200000.0,India
+2025,Mass movement (wet),Avalanche (wet),1,8.0,219.0,,India
+2025,Mass movement (wet),Landslide (wet),1,41.0,3500.0,,India
+2025,Mass movement (wet),Mudslide,1,105.0,,,India
+2025,Storm,Severe weather,5,147.0,39204.0,2900000.0,India
+2025,Storm,Tropical cyclone,2,11.0,1800000.0,640000000.0,India
