@@ -1,9 +1,16 @@
-import { useState } from "react";
-import { Line, Bar, Scatter } from "react-chartjs-2";
 import {
-  Chart as ChartJS, CategoryScale, LinearScale, PointElement,
-  LineElement, BarElement, Title, Tooltip, Legend, Filler
+  BarElement,
+  CategoryScale,
+  Chart as ChartJS,
+  Filler,
+  Legend,
+  LinearScale,
+  LineElement,
+  PointElement,
+  Title, Tooltip
 } from "chart.js";
+import { useState } from "react";
+import { Bar, Line, Scatter } from "react-chartjs-2";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement,
   LineElement, BarElement, Title, Tooltip, Legend, Filler);
@@ -74,7 +81,7 @@ const chartOpts = (yMin, yMax, xLabel, yLabel) => ({
 export default function MLEvaluation() {
   const [tab, setTab] = useState(0);
 
-  // ── Learning Curve data ──
+  //  Learning Curve data 
   const sizes = ["10%","20%","30%","40%","50%","60%","70%","80%","90%","100%"];
   const trainMean = [1.000,1.000,0.999,0.999,0.999,0.999,0.998,0.998,0.997,0.997];
   const valMean   = [0.912,0.941,0.956,0.968,0.975,0.981,0.986,0.989,0.992,0.994];
@@ -86,7 +93,7 @@ export default function MLEvaluation() {
     ]
   };
 
-  // ── ROC Curve data ──
+  // ROC Curve data 
   const rocData = {
     datasets: [
       { label:"Low (AUC=1.00)",    data:[{x:0,y:0},{x:.001,y:.98},{x:.005,y:.995},{x:.01,y:1},{x:1,y:1}],  borderColor:"#00d4ff", borderWidth:2, showLine:true, pointRadius:0, tension:.1 },
@@ -96,7 +103,7 @@ export default function MLEvaluation() {
     ]
   };
 
-  // ── PR Curve data ──
+  //  PR Curve data 
   const prData = {
     datasets: [
       { label:"Low (AP=1.00)",    data:[{x:0,y:1},{x:.5,y:1},{x:.8,y:1},{x:.95,y:1},{x:1,y:.99}],                         borderColor:"#00d4ff", borderWidth:2, showLine:true, pointRadius:0, tension:.2 },
@@ -105,7 +112,7 @@ export default function MLEvaluation() {
     ]
   };
 
-  // ── Models ──
+  //  Models 
   const models = [
     { rank:1, name:"XGBoost",          acc:.994, f1:.994, time:"0.8s", color:"linear-gradient(90deg,#00a8cc,#00d4ff)", best:true  },
     { rank:2, name:"Random Forest",    acc:.989, f1:.989, time:"1.2s", color:"linear-gradient(90deg,#1D9E75,#00ff9d)", best:false },

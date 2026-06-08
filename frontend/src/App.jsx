@@ -27,7 +27,7 @@ const DISASTER_COLORS = {
   tsunami:    "#06b6d4",
 };
 
-// ── Animated content wrapper ──────────────────────────────
+//  Animated content wrapper 
 function AnimatedPane({ id, children }) {
   const [visible, setVisible]   = useState(false);
   const [content, setContent]   = useState(children);
@@ -176,7 +176,7 @@ export default function App() {
         </div>
       </header>
 
-      {/* ── Disaster Type Selector ── */}
+      {/* Disaster Type Selector  */}
       <div style={{
           display      : "flex",
           gap          : 10,

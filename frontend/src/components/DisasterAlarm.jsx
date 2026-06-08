@@ -63,7 +63,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
   }, [toasts]);
 
   const fetchAlerts = useCallback(async () => {
-    // ✅ FIX 1: Har fetch se pehle purane timers band karo
+    
     alarmTimers.current.forEach(t => clearTimeout(t));
     alarmTimers.current = [];
 
@@ -105,7 +105,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
       data = [];
     }
 
-    // ✅ FIX 2: Agar data empty hai toh sound band karo aur return karo
+    
     if (data.length === 0) {
       alarmTimers.current.forEach(t => clearTimeout(t));
       alarmTimers.current = [];
@@ -145,7 +145,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
     });
 
     data.sort((a, b) => LEVEL_ORDER[b.alert_level] - LEVEL_ORDER[a.alert_level]);
-    // ✅ Jo alerts ab nahi hain unke toasts hata do
+    
     const newIds = new Set(data.map(a => a.id));
     setToasts(prev => prev.filter(t => newIds.has(t.id)));
     setAlerts(data);
@@ -164,7 +164,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
     const timer = setInterval(fetchAlerts, 30000);
     return () => {
       clearInterval(timer);
-      // ✅ FIX 3: Component band hone par bhi timers clear karo
+      
       alarmTimers.current.forEach(t => clearTimeout(t));
     };
   }, [mapFilter, disasterType]);
@@ -183,7 +183,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
     if (dismissed.has(a.id)) return false;
     if (filterLevel !== "All" && a.alert_level !== filterLevel) return false;
 
-    // ✅ FIX: India country mode mein sab OpenWeatherMap alerts hamesha dikhao
+   
     if (a.source === "OpenWeatherMap" && (
       mapFilter.mode === "country" && (mapFilter.country === "India" || mapFilter.country === "all")
     )) return true;
@@ -196,7 +196,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
       }
     }
 
-    // State filter — sirf specific Indian state ke liye
+    
     if (mapFilter.mode === "state" && mapFilter.state !== "all" && mapFilter.state !== "India") {
       if (a.source === "GDACS") return true;
       if (a.state !== mapFilter.state) return false;
