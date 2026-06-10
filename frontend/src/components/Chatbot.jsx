@@ -161,8 +161,9 @@ export default function Chatbot({ disasterType = "flood" }) {
         severity: detectSeverity(responseText),
         reactions: { up: 0, down: 0 },
       }]);
-    } catch {
-      setMessages(prev => [...prev, {
+    } catch (error) {
+        console.error("Chatbot Error:", error);
+        setMessages(prev => [...prev, {
         id: msgIdRef.current++, role: "assistant",
         text: "❌ Backend se connection nahi ho paya.\nServer check karo: http://localhost:8000",
         time, disaster: "default", isError: true, reactions: { up: 0, down: 0 },
