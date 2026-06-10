@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000/api";
 
-// ── Disaster Theme Config ─────────────────────────────────
+//  Disaster Theme Config 
 const DISASTER_THEMES = {
   flood      : { color: "#00d4ff", bg: "#00d4ff08", icon: "🌊", label: "Flood"      },
   earthquake : { color: "#ff6b35", bg: "#ff6b3508", icon: "🏔️", label: "Earthquake" },
@@ -63,7 +63,7 @@ Mujhse poochh sakte ho:
 
 Hindi ya English mein — koi bhi disaster risk poochho!`;
 
-// ── Detect disaster type from text ────────────────────────
+//  Detect disaster type from text 
 function detectDisaster(text) {
   const t = text.toLowerCase();
   if (t.includes("flood") || t.includes("baarish"))    return "flood";
@@ -77,7 +77,7 @@ function detectDisaster(text) {
   return "default";
 }
 
-// ── Detect severity from response ─────────────────────────
+//  Detect severity from response 
 function detectSeverity(text) {
   if (text.includes("Critical")) return "Critical";
   if (text.includes("High"))     return "High";
@@ -86,7 +86,7 @@ function detectSeverity(text) {
   return null;
 }
 
-// ── Group messages by time ────────────────────────────────
+//  Group messages by time 
 function getTimeGroup(time) {
   const now  = new Date();
   const hour = now.getHours();
@@ -161,8 +161,9 @@ export default function Chatbot({ disasterType = "flood" }) {
         severity: detectSeverity(responseText),
         reactions: { up: 0, down: 0 },
       }]);
-    } catch {
-      setMessages(prev => [...prev, {
+    } catch (error) {
+        console.error("Chatbot Error:", error);
+        setMessages(prev => [...prev, {
         id: msgIdRef.current++, role: "assistant",
         text: "❌ Backend se connection nahi ho paya.\nServer check karo: http://localhost:8000",
         time, disaster: "default", isError: true, reactions: { up: 0, down: 0 },
@@ -609,7 +610,7 @@ export default function Chatbot({ disasterType = "flood" }) {
 
       <div className="cg-root">
 
-        {/* ── CHAT PANEL ── */}
+        {/*  CHAT PANEL  */}
         <div 
   className="cg-chat chatbot-main" 
   style={{ 
@@ -781,7 +782,7 @@ export default function Chatbot({ disasterType = "flood" }) {
           </div>
         </div>
 
-        {/* ── SIDE PANEL ── */}
+        {/*  SIDE PANEL  */}
         <div className="cg-side">
           <div className="cg-panel">
             <div className="cg-panel-title">🎨 Active Theme</div>

@@ -173,7 +173,7 @@ export default function AlertFeed() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: 20 }}>
 
-      {/* ── MAIN FEED ── */}
+      {/*  MAIN FEED  */}
       <div>
 
         {/* Filter buttons + Search bar */}
@@ -330,7 +330,7 @@ export default function AlertFeed() {
         </div>
       </div>
 
-      {/* ── SIDE PANEL ── */}
+      {/* SIDE PANEL  */}
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
 
         {/* EMDAT Summary */}
