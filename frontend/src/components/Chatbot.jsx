@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useEffect, useRef, useState } from "react";
 
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "http://localhost:8000/api";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || "https://disasterguard-backend-firc.onrender.com";
 
 //  Disaster Theme Config 
 const DISASTER_THEMES = {
@@ -165,7 +165,7 @@ export default function Chatbot({ disasterType = "flood" }) {
         console.error("Chatbot Error:", error);
         setMessages(prev => [...prev, {
         id: msgIdRef.current++, role: "assistant",
-        text: "❌ Backend se connection nahi ho paya.\nServer check karo: http://localhost:8000",
+        text: "❌ Backend se connection nahi ho paya.\nServer check karo: https://disasterguard-backend-firc.onrender.com",
         time, disaster: "default", isError: true, reactions: { up: 0, down: 0 },
       }]);
     }
