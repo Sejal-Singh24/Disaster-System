@@ -18,7 +18,8 @@ WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 # ── Paths ─────────────────────────────────────────────────
 BASE_DIR   = os.path.dirname(__file__)
 MODEL_PATH = os.path.join(BASE_DIR, "../models/model.pkl")
-DATA_PATH  = r"C:\Users\user\Desktop\Disaster-System\data\disasters_clean.csv"
+# NAYI LINE
+DATA_PATH = os.path.join(os.path.dirname(__file__), "../../data/disasters_clean.csv")
 
 # ── Load ML Model ─────────────────────────────────────────
 def load_model():

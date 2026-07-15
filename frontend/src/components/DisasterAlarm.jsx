@@ -70,7 +70,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
     setLoading(true);
     let data = [];
     try {
-      let url = "http://localhost:8000/api/";
+      let url = "https://disasterguard-backend-firc.onrender.com";
 
       const eventTypeMap = {
         flood: "FL", earthquake: "EQ", cyclone: "TC",
@@ -79,7 +79,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
       const eventCode = eventTypeMap[disasterType] || "FL";
 
       if (mapFilter.mode === "global") {
-        url = `http://localhost:8000/api/global?eventtype=${eventCode}`;
+        url = `https://disasterguard-backend-firc.onrender.com/api/global?eventtype=${eventCode}`;
       } else if (mapFilter.mode === "country" && mapFilter.country !== "all" && mapFilter.country !== "India") {
         const countryISOMap = {
           "Afghanistan": "AFG", "Australia": "AUS", "Bangladesh": "BGD",
@@ -95,7 +95,7 @@ export default function DisasterAlarm({ mapFilter = { mode: "global", country: "
           "Vietnam": "VNM", "Yemen": "YEM",
         };
         const iso = countryISOMap[mapFilter.country] || "";
-        url = `http://localhost:8000/api/global?country=${iso}&eventtype=${eventCode}`;
+        url = `https://disasterguard-backend-firc.onrender.com/api/global?country=${iso}&eventtype=${eventCode}`;
       }
 
       const resp = await fetch(url, { signal: AbortSignal.timeout(15000) });

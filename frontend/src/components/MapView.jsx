@@ -3,7 +3,7 @@ import "leaflet/dist/leaflet.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Circle, MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 
-// APIs
+
 const GDACS_API       = "/gdacs-api/api/events/geteventlist/SEARCH";
 const OPENWEATHER_API = "/openweather-api/data/2.5/weather";
 const OW_KEY = import.meta.env.VITE_WEATHER_API_KEY || "";
@@ -93,7 +93,7 @@ const INDIA_STATES = [
   { name: "Andaman & Nicobar", capital: "Port Blair",  center: [11.7, 92.7],  zoom: 7,  bbox: { minLat: 6.8,  maxLat: 14.0, minLng: 92.2, maxLng: 94.3 } },
 ];
 
-//  OpenWeather risk calculator
+// ── OpenWeather risk calculator ───────────────────────────
 function calcWeatherRisk(data, disasterType) {
   const temp      = data.main?.temp      ?? 25;
   const humidity  = data.main?.humidity  ?? 50;
@@ -133,7 +133,7 @@ function calcWeatherRisk(data, disasterType) {
   return            { risk: "low",    color: "#00e676", alertlevel: "Green"  };
 }
 
-// Helpers 
+// ── Helpers ───────────────────────────────────────────────
 function makeDotIcon(color, size = 14) {
   return L.divIcon({
     html: `<div style="
@@ -237,7 +237,7 @@ function StatBox({ value, label, color }) {
   );
 }
 
-// Main Component 
+// ── Main Component ────────────────────────────────────────
 export default function MapView({ disasterType = "flood", onFilterChange }) {
 
   const [viewMode,        setViewMode]        = useState("global");
@@ -265,14 +265,14 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
   }
 }, [viewMode, selectedCountry, selectedState, onFilterChange]);
 
-  // Fetch GDACS 
+  // ── Fetch GDACS ───────────────────────────────────────
   const fetchEvents = useCallback(async (type, country = "") => {
     setLoading(true); setError(null);
     try {
       const info   = DISASTER_TYPE_MAP[type] || DISASTER_TYPE_MAP.flood;
       const params = new URLSearchParams({ eventlist: info.code, alertlevel: "Green,Orange,Red", limit: 500 });
       
-     
+      // ✅ Country filter add karo
       if (country && country !== "global") params.append("country", country);
       
       const res = await fetch(`${GDACS_API}?${params}`);
@@ -310,7 +310,7 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
     }
   }, []);
 
-  //  Fetch OpenWeather for selected state 
+  // ── Fetch OpenWeather for selected state ──────────────
   const fetchStateWeather = useCallback(async (stateName, type) => {
     const st = INDIA_STATES.find(s => s.name === stateName);
     if (!st) return;
@@ -344,14 +344,14 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
     }
   }, []);
 
-  //  Initial + auto refresh 
+  // ── Initial + auto refresh ────────────────────────────
   useEffect(() => {
     fetchEvents(disasterType, viewMode === "country" ? selectedCountry : "");
     const iv = setInterval(() => fetchEvents(disasterType, viewMode === "country" ? selectedCountry : ""), 5 * 60 * 1000);
     return () => clearInterval(iv);
   }, [disasterType, fetchEvents, viewMode, selectedCountry]);
   
-  //  Fetch OW when state view active or state changes 
+  // ── Fetch OW when state view active or state changes ──
   useEffect(() => {
     if (viewMode === "state") {
       fetchStateWeather(selectedState, disasterType);
@@ -360,7 +360,7 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
     }
   }, [viewMode, selectedState, disasterType, fetchStateWeather]);
 
-  //  Filter events 
+  // ── Filter events ─────────────────────────────────────
   const gdacsVisible = (() => {
     if (viewMode === "global") return allEvents;
     if (viewMode === "country") return allEvents.filter(e => e.iso3 === selectedCountry);
@@ -380,7 +380,7 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
     ? [...gdacsVisible, { ...owStateData, source: "OpenWeather", eventId: `ow-${owStateData.stateName}`, name: owStateData.stateName, country: "India" }]
     : gdacsVisible;
 
-  //  Map config 
+  // ── Map config ────────────────────────────────────────
   const mapConfig = (() => {
     if (viewMode === "global")  return { center: [20, 0], zoom: 2 };
     if (viewMode === "country") { const c = COUNTRIES.find(c => c.iso === selectedCountry); return { center: c?.center || [20, 0], zoom: c?.zoom || 5 }; }
@@ -410,7 +410,7 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 310px", gap: 20, height: "calc(100vh - 140px)" }}>
 
-      {/*  MAP PANEL  */}
+      {/* ══ MAP PANEL ══ */}
       <div style={{
         background: "#0a0e1a", borderRadius: 14,
         border: `1px solid ${typeInfo.color}35`,
@@ -490,7 +490,7 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
           </div>
         )}
 
-        {/* MAP  */}
+        {/* ── MAP ── */}
         <MapContainer center={[20, 0]} zoom={2} style={{ width: "100%", height: "100%" }} attributionControl={false}>
           <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" subdomains="abcd" maxZoom={19} />
           <MapController center={mapConfig.center} zoom={mapConfig.zoom} />
@@ -582,7 +582,7 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
         </MapContainer>
       </div>
 
-      {/*  SIDE PANEL  */}
+      {/* ══ SIDE PANEL ══ */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16, overflowY: "auto" }}>
 
         {/* Live Stats */}
@@ -732,14 +732,14 @@ export default function MapView({ disasterType = "flood", onFilterChange }) {
         )}
       </div>
 
-      <style>{`
+      <style>{
         @keyframes spin   { from { transform: rotate(0deg); }   to { transform: rotate(360deg); } }
         @keyframes ddFade { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes pulse  { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+        @keyframes pulse  { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }}
         .leaflet-popup-content-wrapper { background: transparent !important; border: none !important; box-shadow: none !important; padding: 0 !important; }
         .leaflet-popup-content { margin: 0 !important; }
         .leaflet-popup-tip { display: none !important; }
-      `}</style>
+      </style>
     </div>
   );
 }

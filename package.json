@@ -7,6 +7,10 @@
     "build": "vite build",
     "preview": "vite preview"
   },
+  "overrides": {
+  "react": "^18.3.1",
+  "react-dom": "^18.3.1"
+  },
   "dependencies": {
     "axios": "^1.15.0",
     "leaflet": "^1.9.4",

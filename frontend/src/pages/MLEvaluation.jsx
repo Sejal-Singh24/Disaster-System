@@ -8,7 +8,7 @@ import {
 ChartJS.register(CategoryScale, LinearScale, PointElement,
   LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
-const styles = `
+const styles = 
   @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Exo+2:wght@300;400;600&display=swap');
   .ml-wrap { background: #0a0e1a; min-height: 100vh; color: #e8f4fd; font-family: 'Exo 2', sans-serif; padding: 20px 24px; }
   .ml-metrics { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; margin-bottom: 20px; }
@@ -68,7 +68,7 @@ const styles = `
   .model-selector-right { display:flex; align-items:center; gap:10px; }
   .active-model-badge { font-family:'Share Tech Mono',monospace; font-size:10px; padding:6px 14px; border-radius:6px; border:1px solid #2a3d5a; background:transparent; color:#8ba3c7; letter-spacing:1.5px; }
   .active-model-hint { font-family:'Share Tech Mono',monospace; font-size:10px; color:#2a3d5a; letter-spacing:0.5px; }
-`;
+;
 
 const TABS = ["Learning Curve", "ROC Curve", "Precision-Recall", "Confusion Matrix"];
 
